@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-labelledby="t">
+  <title id="t">GHS04 - Gas a presión</title>
+  <polygon points="100,9 191,100 100,191 9,100" fill="#FFFFFF" stroke="#E30613" stroke-width="12" stroke-linejoin="miter"/>
+  <g fill="#000000" stroke="none">
+
+    <g transform="rotate(-28 100 112)">
+      <rect x="60" y="99" width="64" height="27" rx="13.5"/>
+      <rect x="123" y="105" width="9" height="15"/>
+      <rect x="131" y="101" width="9" height="23" rx="2"/>
+      <rect x="70" y="104" width="44" height="3.5" rx="1.75" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-labelledby="t">
+  <title id="t">GHS03 - Comburente</title>
+  <polygon points="100,9 191,100 100,191 9,100" fill="#FFFFFF" stroke="#E30613" stroke-width="12" stroke-linejoin="miter"/>
+  <g fill="#000000" stroke="none">
+
+    <g transform="translate(100 120) scale(1.05) translate(-100 -130)"><path d="M100,130 C76,130 68,114 72,100 C75,90 82,85 81,73 C90,79 92,88 91,96 C97,88 100,76 98,58 C113,70 121,85 118,100 C123,96 125,90 125,85 C133,98 132,116 123,123 C117,128 109,130 100,130 Z"/></g>
+    <circle cx="100" cy="114" r="15" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
+    <rect x="66" y="134" width="68" height="6"/>
+  </g>
+</svg>

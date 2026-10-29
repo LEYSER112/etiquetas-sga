@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-labelledby="t">
+  <title id="t">GHS02 - Inflamable</title>
+  <polygon points="100,9 191,100 100,191 9,100" fill="#FFFFFF" stroke="#E30613" stroke-width="12" stroke-linejoin="miter"/>
+  <g fill="#000000" stroke="none">
+
+    <path d="M100,130 C76,130 68,114 72,100 C75,90 82,85 81,73 C90,79 92,88 91,96 C97,88 100,76 98,58 C113,70 121,85 118,100 C123,96 125,90 125,85 C133,98 132,116 123,123 C117,128 109,130 100,130 Z"/>
+    <path d="M100,126 C90,126 85,118 88,110 C91,104 96,102 96,96 C103,101 107,108 106,114 C109,112 111,109 111,106 C116,114 113,126 100,126 Z" fill="#FFFFFF"/>
+    <rect x="66" y="133" width="68" height="7"/>
+  </g>
+</svg>

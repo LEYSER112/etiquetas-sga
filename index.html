@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Etiquetas SGA</title>
+    <meta
+      name="description"
+      content="Genera etiquetas SGA (Res. 773 de 2021) a partir de la hoja de seguridad en PDF."
+    />
+    <link rel="icon" href="assets/pictogramas/ghs07-irritacion.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="styles/main.css" />
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body>
+    <header class="cabecera">
+      <div class="cabecera__marca">
+        <img src="assets/pictogramas/ghs07-irritacion.svg" alt="" width="36" height="36" />
+        <div>
+          <h1>Etiquetas SGA</h1>
+          <p>
+            Sube la hoja de seguridad, revisa los datos e imprime la etiqueta con las medidas de la Res. 773
+            de 2021.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <main class="mesa">
+      <form id="formulario" class="formulario" novalidate autocomplete="off">
+        <!-- Paso 1 -->
+        <section class="paso" aria-labelledby="titulo-paso-1">
+          <h2 id="titulo-paso-1"><span class="paso__num">1</span> Hoja de seguridad</h2>
+          <label id="zona-carga" class="zona-carga" for="archivo-fds">
+            <input id="archivo-fds" type="file" accept="application/pdf,.pdf" />
+            <strong>Arrastra aquí la FDS en PDF</strong>
+            <span
+              >o haz clic para buscarla. El archivo se lee en tu equipo, no se sube a ningún servidor.</span
+            >
+          </label>
+          <p id="estado-carga" class="estado" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Paso 2 -->
+        <section class="paso" aria-labelledby="titulo-paso-2">
+          <h2 id="titulo-paso-2"><span class="paso__num">2</span> Revisa la etiqueta</h2>
+
+          <div class="campo">
+            <label for="nombre">Nombre de la materia prima</label>
+            <input id="nombre" name="nombre" type="text" required />
+          </div>
+
+          <div class="fila">
+            <div class="campo">
+              <label for="palabra">Palabra de advertencia</label>
+              <select id="palabra" name="palabra">
+                <option value="Peligro">Peligro</option>
+                <option value="Atención">Atención</option>
+                <option value="">Sin palabra</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="capacidad">Capacidad del envase (L)</label>
+              <input
+                id="capacidad"
+                name="capacidad"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                placeholder="25"
+              />
+            </div>
+          </div>
+
+          <fieldset class="campo">
+            <legend>Pictogramas</legend>
+            <div id="pictogramas" class="pictogramas"></div>
+            <button id="usar-sugeridos" type="button" class="enlace" hidden>
+              Usar los que exigen las frases H
+            </button>
+          </fieldset>
+
+          <div class="campo">
+            <label for="frases-h">Indicaciones de peligro (H)</label>
+            <textarea
+              id="frases-h"
+              name="frasesH"
+              rows="5"
+              spellcheck="false"
+              placeholder="Una por línea. Basta con el código: H314"
+            ></textarea>
+          </div>
+          <div class="campo">
+            <label for="frases-p">Consejos de prudencia (P)</label>
+            <textarea
+              id="frases-p"
+              name="frasesP"
+              rows="7"
+              spellcheck="false"
+              placeholder="Una por línea. Ej.: P305+P351+P338"
+            ></textarea>
+            <small class="ayuda"
+              >Si escribes solo el código, se completa con el texto estándar del SGA.</small
+            >
+          </div>
+
+          <details class="desplegable">
+            <summary>Proveedor, emergencia, lote y fechas</summary>
+            <div class="campo">
+              <label for="proveedor-nombre">Proveedor</label>
+              <input id="proveedor-nombre" name="proveedorNombre" type="text" />
+            </div>
+            <div class="fila">
+              <div class="campo">
+                <label for="proveedor-direccion">Dirección</label>
+                <input id="proveedor-direccion" name="proveedorDireccion" type="text" />
+              </div>
+              <div class="campo">
+                <label for="proveedor-telefono">Teléfono</label>
+                <input id="proveedor-telefono" name="proveedorTelefono" type="tel" />
+              </div>
+            </div>
+            <div class="campo">
+              <label for="telefono-emergencia">Teléfono de emergencia</label>
+              <input id="telefono-emergencia" name="telefonoEmergencia" type="tel" />
+            </div>
+            <div class="fila fila--3">
+              <div class="campo">
+                <label for="lote">Lote</label>
+                <input id="lote" name="lote" type="text" />
+              </div>
+              <div class="campo">
+                <label for="fecha-fab">Fabricación</label>
+                <input id="fecha-fab" name="fechaFabricacion" type="date" />
+              </div>
+              <div class="campo">
+                <label for="fecha-venc">Vencimiento</label>
+                <input id="fecha-venc" name="fechaVencimiento" type="date" />
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- Paso 3 -->
+        <section class="paso" aria-labelledby="titulo-paso-3">
+          <h2 id="titulo-paso-3"><span class="paso__num">3</span> Imprime</h2>
+          <div class="fila">
+            <div class="campo">
+              <label for="tamano">Tamaño</label>
+              <select id="tamano" name="tamano"></select>
+            </div>
+            <div class="campo">
+              <label for="orientacion">Orientación</label>
+              <select id="orientacion" name="orientacion">
+                <option value="vertical">Vertical</option>
+                <option value="horizontal">Horizontal</option>
+              </select>
+            </div>
+          </div>
+          <div class="fila fila--3">
+            <div class="campo">
+              <label for="modo">Salida</label>
+              <select id="modo" name="modo">
+                <option value="individual">Una etiqueta por página</option>
+                <option value="hoja">Varias en una hoja</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="hoja">Hoja</label>
+              <select id="hoja" name="hoja">
+                <option value="carta">Carta</option>
+                <option value="a4">A4</option>
+                <option value="oficio">Oficio</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="copias">Copias</label>
+              <input id="copias" name="copias" type="number" min="1" max="500" value="1" />
+            </div>
+          </div>
+          <label class="casilla">
+            <input id="borde" name="borde" type="checkbox" checked />
+            Imprimir contorno de corte
+          </label>
+
+          <div class="acciones">
+            <button id="descargar" type="button" class="boton boton--principal">Descargar PDF</button>
+            <button id="imprimir" type="button" class="boton">Imprimir</button>
+            <button id="limpiar" type="button" class="boton boton--quieto">Nueva etiqueta</button>
+          </div>
+        </section>
+      </form>
+
+      <aside class="vista" aria-label="Vista previa de la etiqueta">
+        <div class="vista__pliego">
+          <div id="cota" class="cota" aria-hidden="true">
+            <span class="cota__h"></span>
+            <span class="cota__v"></span>
+          </div>
+          <div id="marco" class="vista__marco">
+            <iframe id="vista-pdf" title="Etiqueta generada"></iframe>
+            <p id="vista-vacia" class="vista__vacia">
+              La etiqueta aparecerá aquí cuando cargues una FDS o escribas el nombre del producto.
+            </p>
+          </div>
+        </div>
+        <ul id="avisos" class="avisos" aria-live="polite"></ul>
+      </aside>
+    </main>
+
+    <footer class="pie">
+      Revisa siempre la etiqueta contra la FDS del proveedor antes de usarla. Las frases y pictogramas se
+      proponen automáticamente y pueden requerir ajustes.
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "etiquetas-sga",
+  "version": "1.0.0",
+  "description": "Generador de etiquetas SGA (Res. 773 de 2021) a partir de la hoja de seguridad en PDF",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve .",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.0.0"
+  }
+}

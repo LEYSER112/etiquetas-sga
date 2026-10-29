@@ -1,0 +1,39 @@
+FICHA DE DATOS DE SEGURIDAD
+Según SGA - Resolución 773 de 2021                  Versión: 3   Fecha de revisión: 2025-03-10
+SECCIÓN 1: IDENTIFICACIÓN DEL PRODUCTO QUÍMICO Y DE LA EMPRESA
+Nombre del producto:     HIPOCLORITO DE SODIO AL 15%        Código: HS-15
+Uso recomendado: Desinfectante y blanqueador de uso industrial.
+Fabricante / Proveedor: Químicos Andinos S.A.S.
+Dirección: Calle 13 # 68-40, Bogotá D.C., Colombia
+Teléfono: (601) 555 1234
+Teléfono de emergencia: CISPROQUIM 01 8000 916012 (24 horas)
+SECCIÓN 2: IDENTIFICACIÓN DE LOS PELIGROS
+Clasificación de la sustancia o mezcla:
+Corrosivo para los metales, Categoría 1   H290
+Corrosión cutánea, Categoría 1B   H 314
+Toxicidad acuática aguda, Categoría 1   H400
+Elementos de la etiqueta
+Pictogramas: GHS05, GHS09
+Palabra de advertencia:     PELIGRO
+Indicaciones de peligro:
+H290 Puede ser corrosivo para los metales.
+H314 Provoca quemaduras graves en la piel y lesiones oculares graves.
+H400 Muy toxico para los organismos acuaticos.
+Consejos de prudencia:
+P260 No respirar los vapores.
+P280 Llevar guantes/prendas/gafas/máscara de protección.
+P301 + P330 + P331 EN CASO DE INGESTIÓN: Enjuagarse la boca. NO provocar el vómito.
+P303+P361+P353 EN CASO DE CONTACTO CON LA PIEL (o el pelo): Quitar inmediatamente las prendas contaminadas. Aclararse la piel con agua.
+P305 + 351 + 338 EN CASO DE CONTACTO CON LOS OJOS: Aclarar cuidadosamente con agua durante varios minutos.
+P305 En caso de contacto con los ojos.
+P310 Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA.
+P405 Guardar bajo llave.
+P501 Eliminar el contenido/recipiente conforme a la normativa.
+Otros peligros: Libera gas tóxico en contacto con ácidos.
+SECCIÓN 3: COMPOSICIÓN / INFORMACIÓN SOBRE LOS COMPONENTES
+Hipoclorito de sodio   CAS 7681-52-9   15%   H290, H314, H318, H400, H410
+Hidróxido de sodio   CAS 1310-73-2   <1%   H290, H314
+SECCIÓN 4: PRIMEROS AUXILIOS
+Inhalación: Trasladar a la persona al aire libre.
+SECCIÓN 16: OTRA INFORMACIÓN
+Texto completo de las frases H: H318 Provoca lesiones oculares graves. H410 Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.
