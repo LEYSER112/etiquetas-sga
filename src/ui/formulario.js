@@ -19,21 +19,16 @@ export function leerFormulario(form, pictogramas) {
     pictogramas,
     frasesH: textoAFrases(valor(form, 'frasesH'), 'H'),
     frasesP: textoAFrases(valor(form, 'frasesP'), 'P'),
-    proveedor: {
-      nombre: valor(form, 'proveedorNombre'),
-      direccion: valor(form, 'proveedorDireccion'),
-      telefono: valor(form, 'proveedorTelefono'),
-    },
     telefonoEmergencia: valor(form, 'telefonoEmergencia'),
-    lote: valor(form, 'lote'),
     fechaFabricacion: valor(form, 'fechaFabricacion'),
     fechaVencimiento: valor(form, 'fechaVencimiento'),
-    tamano: valor(form, 'tamano'),
-    orientacion: valor(form, 'orientacion') || 'vertical',
+    tamano: valor(form, 'tamano') || 'auto',
+    orientacion: valor(form, 'orientacion') || 'auto',
     modo: valor(form, 'modo') || 'individual',
     hoja: valor(form, 'hoja') || 'carta',
     copias: Number.parseInt(valor(form, 'copias'), 10) || 1,
     borde: form.elements.namedItem('borde')?.checked ?? true,
+    cuadroLote: form.elements.namedItem('cuadroLote')?.checked ?? true,
   };
 }
 
@@ -52,8 +47,5 @@ export function escribirAnalisis(form, r, respaldo = {}) {
   poner('palabra', r.palabraAdvertencia);
   poner('frasesH', frasesATexto(r.frasesH));
   poner('frasesP', frasesATexto(r.frasesP));
-  poner('proveedorNombre', r.proveedor.nombre);
-  poner('proveedorDireccion', r.proveedor.direccion);
-  poner('proveedorTelefono', r.proveedor.telefono);
-  poner('telefonoEmergencia', r.proveedor.telefonoEmergencia || respaldo.telefonoEmergencia);
+  poner('telefonoEmergencia', r.telefonoEmergencia || respaldo.telefonoEmergencia);
 }

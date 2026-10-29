@@ -113,36 +113,53 @@ export function extraerPictogramasMencionados(texto) {
   return [...codigos].sort();
 }
 
-/** Extrae un número telefónico de un fragmento de texto. */
-function extraerTelefono(fragmento) {
-  const m = /\+?(?:\(\d{1,4}\)\s?)?\d[\d\s\-./]{5,}\d(?:\s*(?:ext\.?|extensi[oó]n)\s*\d+)?/i.exec(fragmento);
-  return m ? compactar(m[0]) : '';
+// Teléfono: grupos de dígitos separados por un espacio, punto o guion, con
+// indicativo opcional ("+57", "(601)"). Se exigen entre 7 y 15 dígitos.
+const PATRON_TELEFONO = /(?:\+\d{1,3}\s?)?(?:\(\d{1,4}\)\s?)?\d+(?:[ .-]\d+)*/g;
+const PARECE_FECHA = /^\d{1,4}[-./]\d{1,2}[-./]\d{1,4}$/;
+
+/** Todos los números telefónicos de un fragmento de texto, sin repetir. */
+export function extraerTelefonos(fragmento) {
+  const telefonos = [];
+  for (const m of fragmento.matchAll(PATRON_TELEFONO)) {
+    const telefono = compactar(m[0]);
+    const digitos = telefono.replace(/\D/g, '').length;
+    if (digitos < 7 || digitos > 15 || PARECE_FECHA.test(telefono)) continue;
+    if (!telefonos.includes(telefono)) telefonos.push(telefono);
+  }
+  return telefonos;
 }
 
-/** Proveedor, dirección, teléfono y teléfono de emergencia (sección 1). */
-export function extraerProveedor(texto) {
-  const seccion1 = extraerSeccion(texto, 1) || texto.slice(0, 5000);
-  const nombre = valorDeCampo(
-    seccion1,
-    /(?:fabricante|proveedor|distribuidor|importador|empresa|compa[ñn][ií]a|raz[oó]n\s+social)(?:\s*\/\s*\p{L}+)?\s*(?=:)/iu,
-  );
-  const direccion = valorDeCampo(seccion1, /direcci[oó]n\b/i);
+// Una línea que continúa la información telefónica de la anterior.
+const CONTINUA_TELEFONO = /^\s*(?:[(+\d]|l[ií]nea|bogot[aá]|nacional|fuera|resto|celular|whats)/i;
 
-  let telefonoEmergencia = '';
+/**
+ * Teléfono de emergencia. Primero busca CISPROQUIM (línea de emergencias
+ * químicas en Colombia) y sus números; si la FDS no lo menciona, toma el
+ * "teléfono de emergencia" que traiga.
+ * @returns {{telefono: string, esCisproquim: boolean}}
+ */
+export function extraerTelefonoEmergencia(texto) {
+  const lineas = texto.split('\n');
+  for (let i = 0; i < lineas.length; i += 1) {
+    if (!/cisproquim/i.test(lineas[i])) continue;
+    let numeros = extraerTelefonos(lineas[i]);
+    const siguiente = lineas[i + 1] ?? '';
+    if (!numeros.length || CONTINUA_TELEFONO.test(siguiente)) {
+      numeros = [...numeros, ...extraerTelefonos(siguiente)];
+    }
+    if (!numeros.length) numeros = extraerTelefonos(lineas[i - 1] ?? '');
+    if (numeros.length) {
+      return { telefono: `CISPROQUIM ${[...new Set(numeros)].join(' - ')}`, esCisproquim: true };
+    }
+  }
+
   const emergencia =
     /(?:tel[eé]fono|n[uú]mero|l[ií]nea|tel\.?)\s+(?:de\s+)?(?:emergencias?|urgencias?)[^\n]*(?:\n[^\n]*)?/i.exec(
       texto,
     );
-  if (emergencia) telefonoEmergencia = extraerTelefono(emergencia[0]);
-
-  let telefono = '';
-  for (const m of seccion1.matchAll(/(?:tel[eé]fono|tel\.|pbx|celular)[^\n]*/gi)) {
-    if (/emergencia|urgencia/i.test(m[0])) continue;
-    telefono = extraerTelefono(m[0]);
-    if (telefono) break;
-  }
-
-  return { nombre: limpiarNombre(nombre), direccion, telefono, telefonoEmergencia };
+  const numeros = emergencia ? extraerTelefonos(emergencia[0]).slice(0, 2) : [];
+  return { telefono: numeros.join(' - '), esCisproquim: false };
 }
 
 /**
@@ -217,13 +234,21 @@ export function analizarFds(textoBruto) {
     });
   }
 
+  const emergencia = extraerTelefonoEmergencia(texto);
+  if (emergencia.telefono && !emergencia.esCisproquim) {
+    avisos.push({
+      nivel: 'info',
+      mensaje: 'La FDS no menciona CISPROQUIM; se tomó el teléfono de emergencia que trae.',
+    });
+  }
+
   return {
     nombreProducto,
     palabraAdvertencia,
     frasesH,
     frasesP,
     pictogramas,
-    proveedor: extraerProveedor(texto),
+    telefonoEmergencia: emergencia.telefono,
     avisos,
   };
 }

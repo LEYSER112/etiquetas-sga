@@ -10,7 +10,7 @@
  *   2. Pictogramas
  *   3. Palabra de advertencia
  *   4. Indicaciones de peligro (H) y consejos de prudencia (P)
- *   5. Pie: proveedor, teléfono de emergencia, lote y fechas
+ *   5. Pie: teléfono de emergencia, fechas, contenido y cuadro para el sticker del lote
  */
 import { formatearFecha } from './texto.js';
 
@@ -100,7 +100,7 @@ export function escalasTipograficas(anchoMm, altoMm) {
     nombreMin: Math.max(5.5, 7 * s),
     palabra: Math.max(6.5, 10 * s),
     cuerpoMax: 7.5 * s,
-    cuerpoMin: Math.max(4, 4.4 * s),
+    cuerpoMin: s < 1 ? 4 : 4.4,
     pie: Math.max(4, 5.2 * s),
     separacion: 1.2 * s,
   };
@@ -145,6 +145,43 @@ export function ubicarPictogramas(codigos, x0, ancho, y0, lado) {
     y += (k > 1 ? lado + paso : lado) + (g < grupos - 1 ? 1 : 0);
   }
   return { elementos, alto: y - y0 };
+}
+
+/**
+ * Distribuye los pictogramas en una columna (diseño horizontal), de arriba
+ * abajo y alineados a la izquierda de `x0`:
+ *  - en línea recta si caben en la altura disponible;
+ *  - si no, en zigzag vertical (rombos encajados, más angosto que dos columnas);
+ *  - si tampoco, en varias columnas de zigzag.
+ * @returns {{elementos: object[], ancho: number, alto: number}}
+ */
+export function ubicarPictogramasEnColumna(codigos, x0, y0, altoDisponible, lado) {
+  const n = codigos.length;
+  if (n === 0) return { elementos: [], ancho: 0, alto: 0 };
+  const picto = (codigo, x, y) => ({ tipo: 'pictograma', codigo, x, y, lado });
+
+  if (n * lado + (n - 1) <= altoDisponible + 1e-6) {
+    return {
+      elementos: codigos.map((c, i) => picto(c, x0, y0 + i * (lado + 1))),
+      ancho: lado,
+      alto: n * lado + (n - 1),
+    };
+  }
+
+  const paso = (lado + 1.2) / 2;
+  const porColumna = Math.max(1, Math.floor((altoDisponible - lado) / paso) + 1);
+  const columnas = Math.ceil(n / porColumna);
+  const porGrupo = Math.ceil(n / columnas);
+  const elementos = [];
+  let x = x0;
+  let alto = 0;
+  for (let c = 0; c < columnas; c += 1) {
+    const grupo = codigos.slice(c * porGrupo, (c + 1) * porGrupo);
+    grupo.forEach((codigo, i) => elementos.push(picto(codigo, x + (i % 2) * paso, y0 + i * paso)));
+    alto = Math.max(alto, (grupo.length - 1) * paso + lado);
+    x += (grupo.length > 1 ? lado + paso : lado) + 1;
+  }
+  return { elementos, ancho: x - 1 - x0, alto };
 }
 
 /** Convierte líneas envueltas en elementos de texto. */
@@ -199,122 +236,102 @@ function maquetarCuerpo(parrafos, x0, ancho, y0, pt, medidor, separacion) {
   return { elementos, alto: y - y0 };
 }
 
-/** Segmentos del pie de la etiqueta. */
+/** Medidas del cuadro para pegar el sticker del lote (mm). */
+export const CUADRO_LOTE = Object.freeze({ anchoMm: 32, altoMm: 15 });
+
+/** Segmentos del pie de la etiqueta (sin el lote: va en el sticker). */
 function parrafosPie(datos) {
   const parrafos = [];
-  const { proveedor = {} } = datos;
-  const partesProveedor = [
-    proveedor.nombre,
-    proveedor.direccion,
-    proveedor.telefono && `Tel: ${proveedor.telefono}`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  if (partesProveedor) parrafos.push([{ texto: 'Proveedor:', negrita: true }, { texto: partesProveedor }]);
   if (datos.telefonoEmergencia) {
-    parrafos.push([{ texto: 'Teléfono de emergencia:', negrita: true }, { texto: datos.telefonoEmergencia }]);
+    parrafos.push([{ texto: 'Emergencias:', negrita: true }, { texto: datos.telefonoEmergencia }]);
   }
   const extras = [
-    datos.lote && ['Lote:', datos.lote],
     datos.fechaFabricacion && ['F. fab.:', formatearFecha(datos.fechaFabricacion)],
     datos.fechaVencimiento && ['F. venc.:', formatearFecha(datos.fechaVencimiento)],
     datos.contenido && ['Contenido:', datos.contenido],
   ].filter(Boolean);
-  if (extras.length) {
-    parrafos.push(
-      extras.flatMap(([etiqueta, valor], i) => [
-        { texto: (i ? '  ' : '') + etiqueta, negrita: true },
-        { texto: valor },
-      ]),
-    );
-  }
+  for (const [etiqueta, valor] of extras)
+    parrafos.push([{ texto: etiqueta, negrita: true }, { texto: valor }]);
   return parrafos;
 }
 
 /**
- * Diseña la etiqueta.
- * @param {object} datos  Datos de la etiqueta (ver README).
- * @param {{anchoMm:number, altoMm:number, pictogramaMm:number}} formato
- * @param {Medidor} medidor
- * @param {{borde?: boolean}} [opciones]
+ * Pie: textos a la izquierda y cuadro del lote abajo a la derecha.
+ * Si no queda ancho suficiente al lado del cuadro, los textos van encima.
  */
-export function disenarEtiqueta(datos, formato, medidor, opciones = {}) {
-  const { anchoMm, altoMm, pictogramaMm } = formato;
-  const e = escalasTipograficas(anchoMm, altoMm);
-  const x0 = e.margen;
-  const ancho = anchoMm - 2 * e.margen;
+function maquetarPie(datos, x0, ancho, yInferior, e, medidor, conCuadroLote) {
+  const elementos = [];
+  const cuadro = conCuadroLote ? CUADRO_LOTE : { anchoMm: 0, altoMm: 0 };
+  const anchoLateral = ancho - cuadro.anchoMm - 2;
+  const alLado = !conCuadroLote || anchoLateral >= 26;
+  const anchoTexto = alLado && conCuadroLote ? anchoLateral : ancho;
+
+  const lineas = parrafosPie(datos).flatMap((p) => envolverTexto(p, anchoTexto, e.pie, medidor));
+  const altoTexto = lineas.length * altoLinea(e.pie);
+  const alto = alLado ? Math.max(altoTexto, cuadro.altoMm) : altoTexto + 1 + cuadro.altoMm;
+  if (alto === 0) return { elementos, alto: 0 };
+
+  const yTexto = alLado ? yInferior - altoTexto : yInferior - alto;
+  elementos.push(...lineasAElementos(lineas, x0, anchoTexto, yTexto, e.pie));
+
+  if (conCuadroLote) {
+    const x = x0 + ancho - cuadro.anchoMm;
+    const y = yInferior - cuadro.altoMm;
+    elementos.push({
+      tipo: 'rect',
+      x,
+      y,
+      ancho: cuadro.anchoMm,
+      alto: cuadro.altoMm,
+      grosor: 0.3,
+      guion: true,
+    });
+    const pt = 4.5;
+    elementos.push({
+      tipo: 'texto',
+      x: x + 1,
+      y: y + 1 + pt * PT_A_MM * 0.88,
+      pt,
+      tramos: [{ texto: 'LOTE', negrita: true, x: 0 }],
+    });
+  }
+  return { elementos, alto };
+}
+
+/**
+ * Coloca el pie abajo y el cuerpo (frases H/P) en el espacio que queda,
+ * buscando la letra más grande que quepa.
+ */
+function maquetarZonaTexto(datos, zona, e, medidor, opciones, esPeligroso) {
+  const { x, ancho, yInicio, yFin } = zona;
   const elementos = [];
   const avisos = [];
 
-  if (opciones.borde !== false) {
-    elementos.push({ tipo: 'rect', x: 0.5, y: 0.5, ancho: anchoMm - 1, alto: altoMm - 1, grosor: 0.3 });
+  const pie = maquetarPie(datos, x, ancho, yFin, e, medidor, opciones.cuadroLote !== false);
+  const yPie = yFin - pie.alto;
+  if (pie.alto) {
+    const yLinea = yPie - e.separacion * 0.6;
+    elementos.push({ tipo: 'linea', x1: x, y1: yLinea, x2: x + ancho, y2: yLinea, grosor: 0.2 });
+    elementos.push(...pie.elementos);
   }
 
-  const esPeligroso = datos.frasesH.length > 0 || datos.pictogramas.length > 0;
-  let y = e.margen;
-
-  // 1. Nombre del producto: hasta 3 líneas, reduciendo la fuente si hace falta.
-  const nombre = (datos.nombreProducto || 'SIN NOMBRE').toUpperCase();
-  let ptNombre = e.nombreMax;
-  let lineasNombre = envolverTexto([{ texto: nombre, negrita: true }], ancho, ptNombre, medidor);
-  while (lineasNombre.length > 2 && ptNombre > e.nombreMin) {
-    ptNombre = Math.max(e.nombreMin, ptNombre - 0.5);
-    lineasNombre = envolverTexto([{ texto: nombre, negrita: true }], ancho, ptNombre, medidor);
-  }
-  elementos.push(...lineasAElementos(lineasNombre, x0, ancho, y, ptNombre, 'centro'));
-  y += lineasNombre.length * altoLinea(ptNombre) + e.separacion;
-
-  // 2. Pictogramas con el tamaño mínimo de la norma.
-  const picto = ubicarPictogramas(datos.pictogramas, x0, ancho, y, pictogramaMm);
-  elementos.push(...picto.elementos);
-  if (picto.alto) y += picto.alto + e.separacion * 0.6;
-
-  // 3. Palabra de advertencia o leyenda de producto no peligroso.
-  const leyenda = esPeligroso
-    ? (datos.palabraAdvertencia || '').toUpperCase()
-    : 'PRODUCTO NO CLASIFICADO COMO PELIGROSO';
-  if (leyenda) {
-    const pt = esPeligroso ? e.palabra : e.palabra * 0.75;
-    const lineas = envolverTexto([{ texto: leyenda, negrita: true }], ancho, pt, medidor);
-    elementos.push(...lineasAElementos(lineas, x0, ancho, y, pt, 'centro'));
-    y += lineas.length * altoLinea(pt) + e.separacion * 0.6;
-  }
-
-  // 5. Pie (se calcula antes para saber cuánto espacio queda al cuerpo).
-  const lineasPie = parrafosPie(datos).flatMap((p) => envolverTexto(p, ancho, e.pie, medidor));
-  const altoPie = lineasPie.length * altoLinea(e.pie);
-  const yPie = altoMm - e.margen - altoPie;
-  if (lineasPie.length) {
-    elementos.push({
-      tipo: 'linea',
-      x1: x0,
-      y1: yPie - e.separacion * 0.6,
-      x2: x0 + ancho,
-      y2: yPie - e.separacion * 0.6,
-      grosor: 0.2,
-    });
-    elementos.push(...lineasAElementos(lineasPie, x0, ancho, yPie, e.pie));
-  }
-
-  // 4. Cuerpo: se busca la fuente más grande que quepa.
-  const limiteCuerpo = (lineasPie.length ? yPie - e.separacion * 1.2 : altoMm - e.margen) - y;
+  const limiteCuerpo = (pie.alto ? yPie - e.separacion * 1.2 : yFin) - yInicio;
   const parrafos = parrafosCuerpo(datos, esPeligroso);
   let ptCuerpo = e.cuerpoMax;
-  let cuerpo = maquetarCuerpo(parrafos, x0, ancho, y, ptCuerpo, medidor, e.separacion);
+  let cuerpo = maquetarCuerpo(parrafos, x, ancho, yInicio, ptCuerpo, medidor, e.separacion);
   while (cuerpo.alto > limiteCuerpo && ptCuerpo > e.cuerpoMin) {
     ptCuerpo = Math.max(e.cuerpoMin, ptCuerpo - 0.25);
-    cuerpo = maquetarCuerpo(parrafos, x0, ancho, y, ptCuerpo, medidor, e.separacion);
+    cuerpo = maquetarCuerpo(parrafos, x, ancho, yInicio, ptCuerpo, medidor, e.separacion);
   }
 
   const desborde = cuerpo.alto > limiteCuerpo + 0.01;
   if (desborde) {
-    const limiteY = y + limiteCuerpo;
+    const limiteY = yInicio + limiteCuerpo;
     const visibles = cuerpo.elementos.filter((el) => el.y <= limiteY);
-    const omitidas = cuerpo.elementos.length - visibles.length;
     elementos.push(...visibles);
     avisos.push({
       nivel: 'error',
-      mensaje: `El texto no cabe en esta etiqueta (${omitidas} línea(s) quedaron por fuera). Use un tamaño mayor, orientación distinta o resuma las frases P.`,
+      mensaje: `El texto no cabe en esta etiqueta (${cuerpo.elementos.length - visibles.length} línea(s) quedaron por fuera). Use un tamaño mayor o resuma las frases P.`,
     });
   } else {
     elementos.push(...cuerpo.elementos);
@@ -325,6 +342,159 @@ export function disenarEtiqueta(datos, formato, medidor, opciones = {}) {
       mensaje: `El texto quedó en ${ptCuerpo.toFixed(1)} pt; puede ser difícil de leer. Considere un tamaño de etiqueta mayor.`,
     });
   }
+  return { elementos, avisos, ptCuerpo, desborde };
+}
 
-  return { elementos, avisos, tamanoCuerpoPt: ptCuerpo, desborde };
+/** Nombre del producto: hasta 2 líneas, reduciendo la fuente si hace falta. */
+function maquetarNombre(datos, x0, ancho, y, e, medidor) {
+  const nombre = (datos.nombreProducto || 'SIN NOMBRE').toUpperCase();
+  let pt = e.nombreMax;
+  let lineas = envolverTexto([{ texto: nombre, negrita: true }], ancho, pt, medidor);
+  while (lineas.length > 2 && pt > e.nombreMin) {
+    pt = Math.max(e.nombreMin, pt - 0.5);
+    lineas = envolverTexto([{ texto: nombre, negrita: true }], ancho, pt, medidor);
+  }
+  return {
+    elementos: lineasAElementos(lineas, x0, ancho, y, pt, 'centro'),
+    alto: lineas.length * altoLinea(pt),
+  };
+}
+
+/** Palabra de advertencia o leyenda de producto no peligroso. */
+function maquetarLeyenda(datos, x0, ancho, y, e, medidor, esPeligroso) {
+  const leyenda = esPeligroso
+    ? (datos.palabraAdvertencia || '').toUpperCase()
+    : 'PRODUCTO NO CLASIFICADO COMO PELIGROSO';
+  if (!leyenda) return { elementos: [], alto: 0 };
+  const pt = esPeligroso ? e.palabra : e.palabra * 0.75;
+  const lineas = envolverTexto([{ texto: leyenda, negrita: true }], ancho, pt, medidor);
+  return {
+    elementos: lineasAElementos(lineas, x0, ancho, y, pt, 'centro'),
+    alto: lineas.length * altoLinea(pt),
+  };
+}
+
+/**
+ * Diseño en flujo: nombre, fila de pictogramas, palabra de advertencia,
+ * frases y pie, uno debajo del otro. Es el natural para etiquetas verticales.
+ */
+function disenoFlujo(datos, formato, medidor, opciones, e, esPeligroso) {
+  const { anchoMm, altoMm, pictogramaMm } = formato;
+  const x0 = e.margen;
+  const ancho = anchoMm - 2 * e.margen;
+  const elementos = [];
+  let y = e.margen;
+
+  const nombre = maquetarNombre(datos, x0, ancho, y, e, medidor);
+  elementos.push(...nombre.elementos);
+  y += nombre.alto + e.separacion;
+
+  const picto = ubicarPictogramas(datos.pictogramas, x0, ancho, y, pictogramaMm);
+  elementos.push(...picto.elementos);
+  if (picto.alto) y += picto.alto + e.separacion * 0.6;
+
+  const leyenda = maquetarLeyenda(datos, x0, ancho, y, e, medidor, esPeligroso);
+  elementos.push(...leyenda.elementos);
+  if (leyenda.alto) y += leyenda.alto + e.separacion * 0.6;
+
+  const zona = maquetarZonaTexto(
+    datos,
+    { x: x0, ancho, yInicio: y, yFin: altoMm - e.margen },
+    e,
+    medidor,
+    opciones,
+    esPeligroso,
+  );
+  return { ...zona, elementos: [...elementos, ...zona.elementos] };
+}
+
+/**
+ * Diseño en columnas: nombre arriba; a la izquierda los pictogramas y la
+ * palabra de advertencia; a la derecha las frases, la emergencia y el lote.
+ * Aprovecha mejor las etiquetas horizontales.
+ */
+function disenoColumnas(datos, formato, medidor, opciones, e, esPeligroso) {
+  const { anchoMm, altoMm, pictogramaMm } = formato;
+  const x0 = e.margen;
+  const ancho = anchoMm - 2 * e.margen;
+  const elementos = [];
+  let y = e.margen;
+
+  const nombre = maquetarNombre(datos, x0, ancho, y, e, medidor);
+  elementos.push(...nombre.elementos);
+  y += nombre.alto + e.separacion;
+  const yFin = altoMm - e.margen;
+
+  // Columna izquierda: se reserva espacio para la palabra de advertencia debajo.
+  const altoLeyenda = esPeligroso && datos.palabraAdvertencia ? altoLinea(e.palabra) + e.separacion : 0;
+  const picto = ubicarPictogramasEnColumna(datos.pictogramas, 0, 0, yFin - y - altoLeyenda, pictogramaMm);
+  const anchoLeyenda = esPeligroso
+    ? medidor.ancho((datos.palabraAdvertencia || '').toUpperCase(), e.palabra, true)
+    : 0;
+  const anchoColumna = Math.max(picto.ancho, anchoLeyenda);
+  const altoColumna = picto.alto + (picto.alto ? e.separacion * 0.6 : 0) + altoLeyenda;
+  // Centrada vertical y horizontalmente en su espacio
+  const yColumna = y + Math.max(0, (yFin - y - altoColumna) / 2);
+  const dx = x0 + (anchoColumna - picto.ancho) / 2;
+  elementos.push(...picto.elementos.map((p) => ({ ...p, x: p.x + dx, y: p.y + yColumna })));
+  const leyenda = maquetarLeyenda(
+    datos,
+    x0,
+    anchoColumna,
+    yColumna + picto.alto + e.separacion * 0.6,
+    e,
+    medidor,
+    esPeligroso,
+  );
+  elementos.push(...leyenda.elementos);
+
+  const separacionColumnas = 3;
+  const xTexto = x0 + anchoColumna + separacionColumnas;
+  elementos.push({
+    tipo: 'linea',
+    x1: xTexto - separacionColumnas / 2,
+    y1: y,
+    x2: xTexto - separacionColumnas / 2,
+    y2: yFin,
+    grosor: 0.2,
+  });
+
+  const zona = maquetarZonaTexto(
+    datos,
+    { x: xTexto, ancho: x0 + ancho - xTexto, yInicio: y, yFin },
+    e,
+    medidor,
+    opciones,
+    esPeligroso,
+  );
+  return { ...zona, elementos: [...elementos, ...zona.elementos] };
+}
+
+/**
+ * Diseña la etiqueta. En etiquetas horizontales con pictogramas se prueban
+ * los dos diseños (flujo y columnas) y se usa el que deja la letra más grande.
+ * @param {object} datos  Datos de la etiqueta (ver README).
+ * @param {{anchoMm:number, altoMm:number, pictogramaMm:number}} formato
+ * @param {Medidor} medidor
+ * @param {{borde?: boolean, cuadroLote?: boolean}} [opciones]
+ */
+export function disenarEtiqueta(datos, formato, medidor, opciones = {}) {
+  const { anchoMm, altoMm } = formato;
+  const e = escalasTipograficas(anchoMm, altoMm);
+  const esPeligroso = datos.frasesH.length > 0 || datos.pictogramas.length > 0;
+
+  const opcionesDiseno = [disenoFlujo(datos, formato, medidor, opciones, e, esPeligroso)];
+  if (anchoMm > altoMm && datos.pictogramas.length) {
+    opcionesDiseno.push(disenoColumnas(datos, formato, medidor, opciones, e, esPeligroso));
+  }
+  const mejor = opcionesDiseno.reduce((a, b) => {
+    if (a.desborde !== b.desborde) return a.desborde ? b : a;
+    return b.ptCuerpo > a.ptCuerpo + 0.1 ? b : a;
+  });
+
+  const elementos = [...mejor.elementos];
+  if (opciones.borde !== false) {
+    elementos.unshift({ tipo: 'rect', x: 0.5, y: 0.5, ancho: anchoMm - 1, alto: altoMm - 1, grosor: 0.3 });
+  }
+  return { elementos, avisos: mejor.avisos, tamanoCuerpoPt: mejor.ptCuerpo, desborde: mejor.desborde };
 }

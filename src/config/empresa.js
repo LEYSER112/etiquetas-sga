@@ -1,17 +1,14 @@
 /**
  * Valores por defecto de la empresa.
- * Ajuste estos datos una sola vez; se usan cuando la FDS no los trae.
+ * Se usan cuando la FDS no trae el dato.
  */
 export const EMPRESA = Object.freeze({
-  nombre: 'Vimach',
-  direccion: '',
-  telefono: '',
   /**
-   * Teléfono de emergencia que se imprime si la FDS no trae uno.
-   * Verifique el número vigente de su línea de atención (p. ej. CISPROQUIM)
-   * antes de ponerlo en producción.
+   * Teléfono de emergencia que se imprime cuando la FDS no trae el de CISPROQUIM.
+   * CISPROQUIM es la línea de emergencias químicas del Consejo Colombiano de Seguridad;
+   * verifique de vez en cuando que los números sigan vigentes.
    */
-  telefonoEmergencia: '',
+  telefonoEmergencia: 'CISPROQUIM 01 8000 916012 - (601) 288 6012',
 });
 
 /** Formatos de hoja disponibles para imprimir varias etiquetas. */

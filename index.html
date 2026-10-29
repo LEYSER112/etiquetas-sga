@@ -111,31 +111,17 @@
             >
           </div>
 
+          <div class="campo">
+            <label for="telefono-emergencia">Teléfono de emergencia</label>
+            <input id="telefono-emergencia" name="telefonoEmergencia" type="tel" />
+            <small class="ayuda"
+              >Se toma de CISPROQUIM en la FDS; si no aparece, se usa el número de la configuración.</small
+            >
+          </div>
+
           <details class="desplegable">
-            <summary>Proveedor, emergencia, lote y fechas</summary>
-            <div class="campo">
-              <label for="proveedor-nombre">Proveedor</label>
-              <input id="proveedor-nombre" name="proveedorNombre" type="text" />
-            </div>
+            <summary>Fechas de fabricación y vencimiento (opcional)</summary>
             <div class="fila">
-              <div class="campo">
-                <label for="proveedor-direccion">Dirección</label>
-                <input id="proveedor-direccion" name="proveedorDireccion" type="text" />
-              </div>
-              <div class="campo">
-                <label for="proveedor-telefono">Teléfono</label>
-                <input id="proveedor-telefono" name="proveedorTelefono" type="tel" />
-              </div>
-            </div>
-            <div class="campo">
-              <label for="telefono-emergencia">Teléfono de emergencia</label>
-              <input id="telefono-emergencia" name="telefonoEmergencia" type="tel" />
-            </div>
-            <div class="fila fila--3">
-              <div class="campo">
-                <label for="lote">Lote</label>
-                <input id="lote" name="lote" type="text" />
-              </div>
               <div class="campo">
                 <label for="fecha-fab">Fabricación</label>
                 <input id="fecha-fab" name="fechaFabricacion" type="date" />
@@ -159,8 +145,9 @@
             <div class="campo">
               <label for="orientacion">Orientación</label>
               <select id="orientacion" name="orientacion">
-                <option value="vertical">Vertical</option>
+                <option value="auto">Automática (horizontal primero)</option>
                 <option value="horizontal">Horizontal</option>
+                <option value="vertical">Vertical</option>
               </select>
             </div>
           </div>
@@ -189,6 +176,11 @@
             <input id="borde" name="borde" type="checkbox" checked />
             Imprimir contorno de corte
           </label>
+          <label class="casilla">
+            <input id="cuadro-lote" name="cuadroLote" type="checkbox" checked />
+            Cuadro de 32 x 15 mm para el sticker del lote
+          </label>
+          <p id="tamano-elegido" class="estado" role="status" aria-live="polite"></p>
 
           <div class="acciones">
             <button id="descargar" type="button" class="boton boton--principal">Descargar PDF</button>
@@ -216,8 +208,8 @@
     </main>
 
     <footer class="pie">
-      Revisa siempre la etiqueta contra la FDS del proveedor antes de usarla. Las frases y pictogramas se
-      proponen automáticamente y pueden requerir ajustes.
+      Revisa siempre la etiqueta contra la FDS antes de usarla. Las frases y pictogramas se proponen
+      automáticamente y pueden requerir ajustes.
     </footer>
   </body>
 </html>

@@ -4,7 +4,10 @@
 
 /** Quita tildes y pasa a minúsculas para comparar sin importar la escritura. */
 export function claveComparacion(texto) {
-  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 /**

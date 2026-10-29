@@ -5,12 +5,8 @@ import { analizarFds } from './core/analizador-fds.js';
 import { pictogramasDesdeH } from './core/reglas-sga.js';
 import { validarEtiqueta } from './core/validaciones.js';
 import { nombreArchivo } from './core/texto.js';
-import {
-  TAMANOS_ETIQUETA,
-  obtenerTamano,
-  tamanoPorCapacidad,
-  dimensionesOrientadas,
-} from './config/tamanos-etiqueta.js';
+import { TAMANOS_ETIQUETA } from './config/tamanos-etiqueta.js';
+import { formatosCandidatos } from './core/ajuste-tamano.js';
 import { EMPRESA, HOJAS, IMPRESION } from './config/empresa.js';
 import { pictogramaPorCodigo } from './data/pictogramas.js';
 import { generarPdf } from './services/generador-pdf.js';
@@ -57,7 +53,7 @@ $('imprimir').addEventListener('click', () => ultimoPdf && vista.imprimir());
 $('limpiar').addEventListener('click', reiniciar);
 
 function llenarSelectorTamanos() {
-  const opciones = [new Option('Automático según capacidad', 'auto')];
+  const opciones = [new Option('Automático (se ajusta al texto)', 'auto')];
   for (const t of TAMANOS_ETIQUETA) {
     opciones.push(new Option(`${t.anchoMm} x ${t.altoMm} mm · ${t.nombre}`, t.id));
   }
@@ -71,6 +67,7 @@ function reiniciar() {
   avisosAnalisis = [];
   ultimoPdf = null;
   mostrarEstado('');
+  $('tamano-elegido').textContent = '';
   vista.limpiar();
   actualizar();
 }
@@ -121,17 +118,9 @@ function pictogramasSugeridos() {
   return pictogramasDesdeH(datos.frasesH.map((f) => f.codigo).filter(Boolean));
 }
 
-/** Tamaño elegido o, en automático, el que exige la capacidad (A7 si no hay capacidad). */
-function resolverTamano(datos) {
-  if (datos.tamano && datos.tamano !== 'auto') return obtenerTamano(datos.tamano);
-  return tamanoPorCapacidad(datos.capacidadL) ?? obtenerTamano('A7');
-}
-
 async function actualizar() {
   const id = ++generacion;
   const datos = leerFormulario(form, selector.obtener());
-  const tamano = resolverTamano(datos);
-  datos.tamanoId = tamano.id;
 
   const sugeridos = pictogramasSugeridos();
   botonSugeridos.hidden = sugeridos.join() === datos.pictogramas.join();
@@ -144,22 +133,34 @@ async function actualizar() {
     return;
   }
 
-  const formato = { ...dimensionesOrientadas(tamano, datos.orientacion), pictogramaMm: tamano.pictogramaMm };
+  // Tamaños candidatos: desde el mínimo de la norma, horizontal primero.
+  const candidatos = formatosCandidatos(datos);
   try {
-    const { bytes, avisos } = await generarPdf(datos, formato, {
+    const { bytes, avisos, formato } = await generarPdf(datos, candidatos, {
       modo: datos.modo,
       hoja: datos.hoja,
       copias: datos.copias,
       borde: datos.borde,
+      cuadroLote: datos.cuadroLote,
       obtenerPictograma: (codigo, ladoMm) =>
         svgAPng(pictogramaPorCodigo(codigo).archivo, ladoMm, IMPRESION.dpiPictogramas),
     });
     if (id !== generacion) return; // llegó una versión más reciente
 
+    datos.tamanoId = formato.id;
     ultimoPdf = { bytes, nombre: nombreArchivo(`etiqueta-${datos.nombreProducto}`) };
+    mostrarTamanoElegido(formato, datos);
     const pagina = datos.modo === 'hoja' ? HOJAS[datos.hoja] : formato;
     vista.mostrar(bytes, pagina);
-    mostrarAvisos(listaAvisos, [...validarEtiqueta(datos), ...avisos, ...avisosAnalisis]);
+    const avisoCapacidad = datos.capacidadL
+      ? []
+      : [
+          {
+            nivel: 'info',
+            mensaje: 'Indica la capacidad del envase para respetar el tamaño mínimo de la norma.',
+          },
+        ];
+    mostrarAvisos(listaAvisos, [...validarEtiqueta(datos), ...avisos, ...avisoCapacidad, ...avisosAnalisis]);
   } catch (error) {
     console.error(error);
     if (id === generacion) {
@@ -168,6 +169,12 @@ async function actualizar() {
       ]);
     }
   }
+}
+
+function mostrarTamanoElegido(formato, datos) {
+  const automatico = datos.tamano === 'auto' || datos.orientacion === 'auto';
+  const texto = `${formato.anchoMm} x ${formato.altoMm} mm (${formato.id}, ${formato.orientacion})`;
+  $('tamano-elegido').textContent = automatico ? `Tamaño elegido: ${texto}.` : `Tamaño: ${texto}.`;
 }
 
 function descargar() {

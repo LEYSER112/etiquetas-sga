@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { analizarFds, extraerSeccion } from '../src/core/analizador-fds.js';
+import { analizarFds, extraerSeccion, extraerTelefonoEmergencia } from '../src/core/analizador-fds.js';
 import { normalizarTextoFds } from '../src/core/texto.js';
 
 const fds = readFileSync(new URL('./fixtures/fds-hipoclorito.txt', import.meta.url), 'utf8');
@@ -45,12 +45,26 @@ test('palabra de advertencia y pictogramas', () => {
   assert.deepEqual(r.pictogramas, ['GHS05', 'GHS09']);
 });
 
-test('datos del proveedor y teléfono de emergencia', () => {
-  const { proveedor } = analizarFds(fds);
-  assert.equal(proveedor.nombre, 'Químicos Andinos S.A.S.');
-  assert.equal(proveedor.direccion, 'Calle 13 # 68-40, Bogotá D.C., Colombia');
-  assert.equal(proveedor.telefono, '(601) 555 1234');
-  assert.equal(proveedor.telefonoEmergencia, '01 8000 916012');
+test('extrae el teléfono de CISPROQUIM', () => {
+  assert.equal(analizarFds(fds).telefonoEmergencia, 'CISPROQUIM 01 8000 916012');
+});
+
+test('CISPROQUIM con varios números y en la línea siguiente', () => {
+  assert.deepEqual(
+    extraerTelefonoEmergencia('Teléfono de emergencia: CISPROQUIM\n018000916012 - (601) 2886012 (24 horas)'),
+    { telefono: 'CISPROQUIM 018000916012 - (601) 2886012', esCisproquim: true },
+  );
+  assert.equal(
+    extraerTelefonoEmergencia('CISPROQUIM (Colombia): 01 8000 916012 / Bogotá: (601) 288 6012').telefono,
+    'CISPROQUIM 01 8000 916012 - (601) 288 6012',
+  );
+});
+
+test('sin CISPROQUIM usa el teléfono de emergencia de la FDS', () => {
+  assert.deepEqual(extraerTelefonoEmergencia('Teléfono de emergencia: +57 604 444 1234\nFecha: 2024-05-10'), {
+    telefono: '+57 604 444 1234',
+    esCisproquim: false,
+  });
 });
 
 test('delimita la sección 2', () => {

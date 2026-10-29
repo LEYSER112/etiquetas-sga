@@ -21,7 +21,6 @@ const datosBase = {
     { codigo: 'H400', texto: 'Muy tóxico para los organismos acuáticos.' },
   ],
   frasesP: [{ codigo: 'P280', texto: 'Llevar guantes, prendas, gafas y máscara de protección.' }],
-  proveedor: { nombre: 'Químicos Andinos S.A.S.', direccion: '', telefono: '' },
   telefonoEmergencia: '01 8000 916012',
   capacidadL: 20,
   tamanoId: 'A7',
@@ -103,4 +102,15 @@ test('cuatro pictogramas en A8 van en zigzag sin salirse', async () => {
   assert.equal(alturas.size, 2);
   assert.ok(Math.max(...pictos.map((p) => p.y)) - Math.min(...pictos.map((p) => p.y)) < t.pictogramaMm);
   pictos.forEach((p) => assert.ok(p.x >= 0 && p.x + p.lado <= t.anchoMm));
+});
+
+test('el cuadro del lote mide 32 x 15 mm y queda dentro de la etiqueta', async () => {
+  for (const id of ['A8', 'A7', 'A6', 'A5']) {
+    const t = obtenerTamano(id);
+    const { diseno } = await generarPdf(datosBase, t, { obtenerPictograma });
+    const cuadro = diseno.elementos.find((e) => e.tipo === 'rect' && e.guion);
+    assert.equal(cuadro.ancho, 32);
+    assert.equal(cuadro.alto, 15);
+    assert.ok(cuadro.x + cuadro.ancho <= t.anchoMm && cuadro.y + cuadro.alto <= t.altoMm);
+  }
 });

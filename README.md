@@ -9,14 +9,30 @@ y se imprime.
 ## Cómo se usa
 
 1. **Hoja de seguridad**: arrastra el PDF de la FDS. Se lee en el navegador; el archivo no sale del equipo.
-2. **Revisa la etiqueta**: la app propone nombre, palabra de advertencia, pictogramas, frases H y P y datos
-   del proveedor. Todo es editable. En las frases basta con escribir el código (`H314`, `P305+P351+P338`)
+2. **Revisa la etiqueta**: la app propone nombre, palabra de advertencia, pictogramas, frases H y P y el
+   teléfono de emergencia de CISPROQUIM. Todo es editable. En las frases basta con escribir el código (`H314`, `P305+P351+P338`)
    y se completa con el texto estándar.
-3. **Imprime**: elige tamaño (o déjalo automático según la capacidad del envase), orientación y salida:
+3. **Imprime**: por defecto el tamaño y la orientación son automáticos (ver abajo). Elige la salida:
    - _Una etiqueta por página_: el PDF mide exactamente lo que mide la etiqueta (para impresoras de etiquetas).
    - _Varias en una hoja_: Carta, A4 u Oficio con marcas de corte.
 
 > Imprime siempre al **100 %** (desactiva "Ajustar a la página") para conservar las medidas.
+
+## Tamaño automático
+
+El programa elige el tamaño más pequeño en el que **todo el texto cabe con letra legible (5 pt o más)**:
+
+1. Empieza en el tamaño mínimo que exige la norma para la capacidad del envase (si no se indica la
+   capacidad, empieza en A8).
+2. En cada tamaño prueba primero **horizontal** y luego vertical.
+3. Si no cabe, sube al siguiente tamaño.
+
+En horizontal se prueban dos diseños (pictogramas en columna a la izquierda y texto a la derecha, o todo
+en flujo) y se usa el que deja la letra más grande. El tamaño elegido se muestra debajo de las opciones de
+impresión; también se puede fijar a mano.
+
+Cada etiqueta lleva abajo a la derecha un **cuadro punteado de 32 x 15 mm para pegar el sticker del lote**
+(se puede desactivar).
 
 ## Tamaños (Res. 773 de 2021)
 
@@ -38,9 +54,10 @@ superficie de la etiqueta da 16 mm. Se usa el mayor. Se cambia en `src/config/ta
 - Reemplaza el texto de cada frase por la redacción estándar del SGA (corrige errores de digitación de la FDS).
 - **Deduce los pictogramas a partir de las frases H** y aplica las reglas de precedencia del SGA
   (con calavera no va exclamación; con corrosivo no va exclamación por irritación; etc.).
-- Valida la etiqueta: pictogramas faltantes o sin justificación, palabra de advertencia, proveedor,
-  teléfono de emergencia y tamaño mínimo según la capacidad.
-- Ajusta el tamaño de letra para que todo quepa y avisa si el texto no cabe.
+- Busca **CISPROQUIM** en la FDS y toma sus números de emergencia. Si la FDS no lo menciona, usa el
+  teléfono de emergencia que traiga; si no hay ninguno, usa el de `src/config/empresa.js`.
+- Valida la etiqueta: pictogramas faltantes o sin justificación, palabra de advertencia, teléfono de
+  emergencia y tamaño mínimo según la capacidad.
 
 ## Estructura del proyecto
 
@@ -56,7 +73,7 @@ etiquetas-sga/
 │   ├── main.js                 Punto de entrada: conecta interfaz y lógica
 │   ├── config/                 Parámetros que se ajustan sin tocar la lógica
 │   │   ├── tamanos-etiqueta.js Tamaños de la Res. 773
-│   │   └── empresa.js          Datos de la empresa, hojas y resolución de impresión
+│   │   └── empresa.js          Teléfono de emergencia por defecto, hojas e impresión
 │   ├── data/                   Catálogos
 │   │   ├── frases-h.js         Indicaciones de peligro
 │   │   ├── frases-p.js         Consejos de prudencia
@@ -67,6 +84,7 @@ etiquetas-sga/
 │   │   ├── frases.js           Lectura y armado de frases H/P
 │   │   ├── validaciones.js     Revisión contra la norma
 │   │   ├── diseno-etiqueta.js  Maquetación de la etiqueta en mm
+│   │   ├── ajuste-tamano.js    Elección automática de tamaño y orientación
 │   │   ├── lineas-pdf.js       Reconstruye renglones del texto de pdf.js
 │   │   └── texto.js            Utilidades de texto
 │   ├── services/               Integración con librerías y APIs del navegador
@@ -76,7 +94,7 @@ etiquetas-sga/
 │   └── ui/                     Componentes de la interfaz
 ├── tests/                      Pruebas con el runner nativo de Node
 ├── scripts/generar-pictogramas.py
-└── .github/workflows/pages.yml Pruebas y publicación en GitHub Pages
+└── .nojekyll                   Indica a GitHub Pages que publique los archivos tal cual
 ```
 
 La lógica (`core/`) no depende del navegador ni de la interfaz, por eso se puede probar y reutilizar
@@ -96,18 +114,24 @@ npm run format
 
 > Abrir `index.html` con doble clic **no funciona** (los módulos ES necesitan un servidor).
 
-## Publicar en GitHub Pages
+## Publicar en GitHub Pages (Deploy from a branch)
 
 1. Crea el repositorio y sube el contenido de esta carpeta a la rama `main`.
-2. En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Cada `push` a `main` ejecuta las pruebas y, si pasan, publica el sitio.
+2. En GitHub: **Settings → Pages → Build and deployment**.
+   - **Source**: _Deploy from a branch_.
+   - **Branch**: `main` y carpeta `/ (root)` → **Save**.
+3. En uno o dos minutos la página queda en `https://<usuario>.github.io/<repositorio>/`.
 
-Si el repositorio es privado, GitHub Pages requiere un plan que lo permita; la página publicada es pública
-salvo que la organización tenga Pages con control de acceso (GitHub Enterprise).
+Cada `push` a `main` vuelve a publicar automáticamente. Antes de subir cambios, corre `npm test`.
+
+Si el repositorio es privado, GitHub Pages requiere un plan que lo permita, y la página publicada es
+pública salvo que la organización tenga Pages con control de acceso (GitHub Enterprise).
 
 ## Personalizar
 
-- **Datos de la empresa y teléfono de emergencia por defecto**: `src/config/empresa.js`.
+- **Teléfono de emergencia por defecto (CISPROQUIM)**: `src/config/empresa.js`. Verifica de vez en cuando
+  que los números sigan vigentes.
+- **Letra mínima legible para el ajuste automático**: `CUERPO_LEGIBLE_PT` en `src/core/ajuste-tamano.js`.
 - **Pictogramas**: puedes reemplazar los SVG de `assets/pictogramas/` por los oficiales de la ONU
   (o los del Google Sheets) manteniendo el mismo nombre de archivo.
 - **Textos estándar de las frases**: `src/data/frases-h.js` y `src/data/frases-p.js`.
@@ -116,8 +140,8 @@ salvo que la organización tenga Pages con control de acceso (GitHub Enterprise)
 
 - Las FDS **escaneadas** (imagen, sin texto) no se pueden leer; la app avisa y los datos se llenan a mano.
   Se puede agregar OCR (Tesseract.js) más adelante.
-- Cada proveedor arma su FDS distinto: el nombre del producto y los datos del proveedor son los campos
-  que más pueden requerir corrección manual. **Siempre revisa la etiqueta contra la FDS.**
+- Cada proveedor arma su FDS distinto: el nombre del producto es el campo que más puede requerir
+  corrección manual. **Siempre revisa la etiqueta contra la FDS.**
 
 ## Licencias
 

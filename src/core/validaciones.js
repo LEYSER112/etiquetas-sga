@@ -66,11 +66,8 @@ export function validarEtiqueta(datos) {
     avisos.push({ nivel: 'advertencia', mensaje: 'No hay consejos de prudencia (frases P).' });
   }
 
-  if (!datos.proveedor?.nombre) {
-    avisos.push({ nivel: 'advertencia', mensaje: 'Falta la identificación del proveedor.' });
-  }
   if (!datos.telefonoEmergencia) {
-    avisos.push({ nivel: 'advertencia', mensaje: 'Falta el teléfono de emergencia.' });
+    avisos.push({ nivel: 'advertencia', mensaje: 'Falta el teléfono de emergencia (CISPROQUIM).' });
   }
 
   const minimo = tamanoPorCapacidad(datos.capacidadL);

@@ -4,7 +4,8 @@
  * reciben ya convertidos a PNG mediante `obtenerPictograma`.
  */
 import { PDFDocument, StandardFonts, rgb } from '../../vendor/pdf-lib/pdf-lib.esm.min.js';
-import { disenarEtiqueta, PT_A_MM } from '../core/diseno-etiqueta.js';
+import { PT_A_MM } from '../core/diseno-etiqueta.js';
+import { elegirFormato } from '../core/ajuste-tamano.js';
 import { aWinAnsi } from '../core/texto.js';
 import { HOJAS, IMPRESION } from '../config/empresa.js';
 
@@ -17,16 +18,25 @@ const NEGRO = rgb(0, 0, 0);
  * @property {'carta'|'a4'|'oficio'} [hoja]
  * @property {number} [copias]
  * @property {boolean} [borde]              Línea de contorno de la etiqueta.
+ * @property {boolean} [cuadroLote]         Cuadro de 32 x 15 mm para el sticker del lote.
  * @property {(codigo:string, ladoMm:number) => Promise<Uint8Array>} obtenerPictograma
  */
 
 /**
  * @param {object} datos
- * @param {{anchoMm:number, altoMm:number, pictogramaMm:number}} formato
+ * @param {object|object[]} formatos  Un formato {anchoMm, altoMm, pictogramaMm} o una lista
+ *   ordenada de candidatos; en ese caso se usa el primero donde todo el texto cabe.
  * @param {OpcionesPdf} opciones
  */
-export async function generarPdf(datos, formato, opciones) {
-  const { modo = 'individual', hoja = 'carta', copias = 1, borde = true, obtenerPictograma } = opciones;
+export async function generarPdf(datos, formatos, opciones) {
+  const {
+    modo = 'individual',
+    hoja = 'carta',
+    copias = 1,
+    borde = true,
+    cuadroLote = true,
+    obtenerPictograma,
+  } = opciones;
 
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Etiqueta SGA - ${datos.nombreProducto || 'producto'}`);
@@ -43,7 +53,8 @@ export async function generarPdf(datos, formato, opciones) {
       (negrita ? fuentes.negrita : fuentes.normal).widthOfTextAtSize(aWinAnsi(texto), pt) * PT_A_MM,
   };
 
-  const diseno = disenarEtiqueta(datos, formato, medidor, { borde });
+  const candidatos = Array.isArray(formatos) ? formatos : [formatos];
+  const { formato, diseno } = elegirFormato(datos, candidatos, medidor, { borde, cuadroLote });
 
   const imagenes = new Map();
   for (const codigo of datos.pictogramas) {
@@ -90,7 +101,7 @@ export async function generarPdf(datos, formato, opciones) {
     }
   }
 
-  return { bytes: await pdf.save(), avisos, diseno };
+  return { bytes: await pdf.save(), avisos, diseno, formato };
 }
 
 /** Dibuja los elementos del diseño con origen (mm) en la esquina superior izquierda. */
@@ -109,6 +120,7 @@ function dibujarElementos(pagina, elementos, origenX, origenY, fuentes, imagenes
           height: mmAPt(el.alto),
           borderColor: NEGRO,
           borderWidth: mmAPt(el.grosor),
+          borderDashArray: el.guion ? [mmAPt(1.2), mmAPt(0.8)] : undefined,
         });
         break;
       case 'linea':
