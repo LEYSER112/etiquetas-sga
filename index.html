@@ -33,162 +33,184 @@
     </header>
 
     <main class="mesa">
-      <form id="formulario" class="formulario" novalidate autocomplete="off">
-        <!-- Paso 1 -->
-        <section class="paso" aria-labelledby="titulo-paso-1">
-          <h2 id="titulo-paso-1"><span class="paso__num">1</span> Hoja de seguridad</h2>
-          <label id="zona-carga" class="zona-carga" for="archivo-fds">
-            <input id="archivo-fds" type="file" accept="application/pdf,.pdf" />
-            <strong>Arrastra aquí la FDS en PDF</strong>
-            <span
-              >o haz clic para buscarla. El archivo se lee en tu equipo, no se sube a ningún servidor.</span
-            >
-          </label>
-          <p id="estado-carga" class="estado" role="status" aria-live="polite"></p>
-        </section>
+      <div class="columna">
+        <form id="formulario" class="formulario" novalidate autocomplete="off">
+          <!-- Paso 1 -->
+          <section class="paso" aria-labelledby="titulo-paso-1">
+            <h2 id="titulo-paso-1"><span class="paso__num">1</span> Hoja de seguridad</h2>
+            <label id="zona-carga" class="zona-carga" for="archivo-fds">
+              <input id="archivo-fds" type="file" accept="application/pdf,.pdf" />
+              <strong>Arrastra aquí la FDS en PDF</strong>
+              <span
+                >o haz clic para buscarla. El archivo se lee en tu equipo, no se sube a ningún servidor.</span
+              >
+            </label>
+            <p id="estado-carga" class="estado" role="status" aria-live="polite"></p>
+          </section>
 
-        <!-- Paso 2 -->
-        <section class="paso" aria-labelledby="titulo-paso-2">
-          <h2 id="titulo-paso-2"><span class="paso__num">2</span> Revisa la etiqueta</h2>
+          <!-- Paso 2 -->
+          <section class="paso" aria-labelledby="titulo-paso-2">
+            <h2 id="titulo-paso-2"><span class="paso__num">2</span> Revisa la etiqueta</h2>
 
-          <div class="campo">
-            <label for="nombre">Nombre de la materia prima</label>
-            <input id="nombre" name="nombre" type="text" required />
-          </div>
-
-          <div class="fila">
-            <div class="campo">
-              <label for="palabra">Palabra de advertencia</label>
-              <select id="palabra" name="palabra">
-                <option value="Peligro">Peligro</option>
-                <option value="Atención">Atención</option>
-                <option value="">Sin palabra</option>
-              </select>
+            <div class="fila fila--codigo">
+              <div class="campo">
+                <label for="codigo-interno">Código Odoo</label>
+                <input id="codigo-interno" name="codigoInterno" type="text" placeholder="MP-0001" />
+              </div>
+              <div class="campo">
+                <label for="nombre">Nombre de la materia prima</label>
+                <input id="nombre" name="nombre" type="text" required />
+              </div>
             </div>
-            <div class="campo">
-              <label for="capacidad">Capacidad del envase (L)</label>
-              <input
-                id="capacidad"
-                name="capacidad"
-                type="number"
-                min="0"
-                step="any"
-                inputmode="decimal"
-                placeholder="25"
-              />
-            </div>
-          </div>
 
-          <fieldset class="campo">
-            <legend>Pictogramas</legend>
-            <div id="pictogramas" class="pictogramas"></div>
-            <button id="usar-sugeridos" type="button" class="enlace" hidden>
-              Usar los que exigen las frases H
-            </button>
-          </fieldset>
-
-          <div class="campo">
-            <label for="frases-h">Indicaciones de peligro (H)</label>
-            <textarea
-              id="frases-h"
-              name="frasesH"
-              rows="5"
-              spellcheck="false"
-              placeholder="Una por línea. Basta con el código: H314"
-            ></textarea>
-          </div>
-          <div class="campo">
-            <label for="frases-p">Consejos de prudencia (P)</label>
-            <textarea
-              id="frases-p"
-              name="frasesP"
-              rows="7"
-              spellcheck="false"
-              placeholder="Una por línea. Ej.: P305+P351+P338"
-            ></textarea>
-            <small class="ayuda"
-              >Si escribes solo el código, se completa con el texto estándar del SGA.</small
-            >
-          </div>
-
-          <div class="campo">
-            <label for="telefono-emergencia">Teléfono de emergencia</label>
-            <input id="telefono-emergencia" name="telefonoEmergencia" type="tel" />
-            <small class="ayuda"
-              >Se toma de CISPROQUIM en la FDS; si no aparece, se usa el número de la configuración.</small
-            >
-          </div>
-
-          <details class="desplegable">
-            <summary>Fechas de fabricación y vencimiento (opcional)</summary>
             <div class="fila">
               <div class="campo">
-                <label for="fecha-fab">Fabricación</label>
-                <input id="fecha-fab" name="fechaFabricacion" type="date" />
+                <label for="palabra">Palabra de advertencia</label>
+                <select id="palabra" name="palabra">
+                  <option value="Peligro">Peligro</option>
+                  <option value="Atención">Atención</option>
+                  <option value="">Sin palabra</option>
+                </select>
               </div>
               <div class="campo">
-                <label for="fecha-venc">Vencimiento</label>
-                <input id="fecha-venc" name="fechaVencimiento" type="date" />
+                <label for="capacidad">Capacidad del envase (L)</label>
+                <input
+                  id="capacidad"
+                  name="capacidad"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputmode="decimal"
+                  placeholder="25"
+                />
               </div>
             </div>
-          </details>
-        </section>
 
-        <!-- Paso 3 -->
-        <section class="paso" aria-labelledby="titulo-paso-3">
-          <h2 id="titulo-paso-3"><span class="paso__num">3</span> Imprime</h2>
-          <div class="fila">
-            <div class="campo">
-              <label for="tamano">Tamaño</label>
-              <select id="tamano" name="tamano"></select>
-            </div>
-            <div class="campo">
-              <label for="orientacion">Orientación</label>
-              <select id="orientacion" name="orientacion">
-                <option value="auto">Automática (horizontal primero)</option>
-                <option value="horizontal">Horizontal</option>
-                <option value="vertical">Vertical</option>
-              </select>
-            </div>
-          </div>
-          <div class="fila fila--3">
-            <div class="campo">
-              <label for="modo">Salida</label>
-              <select id="modo" name="modo">
-                <option value="individual">Una etiqueta por página</option>
-                <option value="hoja">Varias en una hoja</option>
-              </select>
-            </div>
-            <div class="campo">
-              <label for="hoja">Hoja</label>
-              <select id="hoja" name="hoja">
-                <option value="carta">Carta</option>
-                <option value="a4">A4</option>
-                <option value="oficio">Oficio</option>
-              </select>
-            </div>
-            <div class="campo">
-              <label for="copias">Copias</label>
-              <input id="copias" name="copias" type="number" min="1" max="500" value="1" />
-            </div>
-          </div>
-          <label class="casilla">
-            <input id="borde" name="borde" type="checkbox" checked />
-            Imprimir contorno de corte
-          </label>
-          <label class="casilla">
-            <input id="cuadro-lote" name="cuadroLote" type="checkbox" checked />
-            Cuadro de 32 x 15 mm para el sticker del lote
-          </label>
-          <p id="tamano-elegido" class="estado" role="status" aria-live="polite"></p>
+            <fieldset class="campo">
+              <legend>Pictogramas</legend>
+              <div id="pictogramas" class="pictogramas"></div>
+              <button id="usar-sugeridos" type="button" class="enlace" hidden>
+                Usar los que exigen las frases H
+              </button>
+            </fieldset>
 
+            <div class="campo">
+              <label for="frases-h">Indicaciones de peligro (H)</label>
+              <textarea
+                id="frases-h"
+                name="frasesH"
+                rows="5"
+                spellcheck="false"
+                placeholder="Una por línea. Basta con el código: H314"
+              ></textarea>
+            </div>
+            <div class="campo">
+              <label for="frases-p">Consejos de prudencia (P)</label>
+              <textarea
+                id="frases-p"
+                name="frasesP"
+                rows="7"
+                spellcheck="false"
+                placeholder="Una por línea. Ej.: P305+P351+P338"
+              ></textarea>
+              <small class="ayuda"
+                >Si escribes solo el código, se completa con el texto estándar del SGA.</small
+              >
+            </div>
+
+            <div class="campo">
+              <label for="ean13">Código de barras EAN-13</label>
+              <input
+                id="ean13"
+                name="ean13"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="17"
+                placeholder="770123456789"
+              />
+              <small id="ayuda-ean" class="ayuda" aria-live="polite"></small>
+            </div>
+
+            <details class="desplegable">
+              <summary>Fechas de fabricación y vencimiento (opcional)</summary>
+              <div class="fila">
+                <div class="campo">
+                  <label for="fecha-fab">Fabricación</label>
+                  <input id="fecha-fab" name="fechaFabricacion" type="date" />
+                </div>
+                <div class="campo">
+                  <label for="fecha-venc">Vencimiento</label>
+                  <input id="fecha-venc" name="fechaVencimiento" type="date" />
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <!-- Paso 3 -->
+          <section class="paso" aria-labelledby="titulo-paso-3">
+            <h2 id="titulo-paso-3"><span class="paso__num">3</span> Guarda la etiqueta</h2>
+            <div class="fila fila--imprimir">
+              <div class="campo">
+                <label for="tamano">Tamaño</label>
+                <select id="tamano" name="tamano"></select>
+              </div>
+              <div class="campo">
+                <label for="orientacion">Orientación</label>
+                <select id="orientacion" name="orientacion">
+                  <option value="auto">Automática (horizontal primero)</option>
+                  <option value="horizontal">Horizontal</option>
+                  <option value="vertical">Vertical</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="copias">Copias</label>
+                <input id="copias" name="copias" type="number" min="1" max="500" value="1" />
+              </div>
+            </div>
+            <label class="casilla">
+              <input id="borde" name="borde" type="checkbox" checked />
+              Imprimir contorno de corte
+            </label>
+            <label class="casilla">
+              <input id="cuadro-lote" name="cuadroLote" type="checkbox" checked />
+              Cuadro de 32 x 15 mm para el sticker del lote
+            </label>
+            <p id="tamano-elegido" class="estado" role="status" aria-live="polite"></p>
+
+            <div class="acciones">
+              <button id="guardar" type="button" class="boton boton--principal">Guardar en el grupo</button>
+              <button id="descargar" type="button" class="boton">Descargar solo esta</button>
+              <button id="limpiar" type="button" class="boton boton--quieto">Nueva etiqueta</button>
+            </div>
+            <p id="estado-guardado" class="estado" role="status" aria-live="polite"></p>
+          </section>
+        </form>
+
+        <!-- Paso 4 -->
+        <section id="grupo" class="paso grupo" aria-labelledby="titulo-paso-4">
+          <h2 id="titulo-paso-4">
+            <span class="paso__num">4</span> Grupo de impresión
+            <span id="grupo-contador" class="grupo__contador" hidden></span>
+          </h2>
+          <p id="grupo-vacio" class="ayuda">
+            Guarda aquí las etiquetas que revises. Al imprimir se acomodan juntas en la hoja, con espacio y
+            marcas de corte entre cada una.
+          </p>
+          <ul id="grupo-lista" class="grupo__lista"></ul>
+          <div class="campo">
+            <label for="hoja">Hoja</label>
+            <select id="hoja" name="hoja"></select>
+          </div>
+          <p id="grupo-resumen" class="estado" role="status" aria-live="polite"></p>
           <div class="acciones">
-            <button id="descargar" type="button" class="boton boton--principal">Descargar PDF</button>
-            <button id="imprimir" type="button" class="boton">Imprimir</button>
-            <button id="limpiar" type="button" class="boton boton--quieto">Nueva etiqueta</button>
+            <button id="grupo-ver" type="button" class="boton">Ver hojas</button>
+            <button id="grupo-descargar" type="button" class="boton boton--principal">Descargar PDF</button>
+            <button id="grupo-imprimir" type="button" class="boton">Imprimir</button>
+            <button id="grupo-vaciar" type="button" class="boton boton--quieto">Vaciar grupo</button>
           </div>
         </section>
-      </form>
+      </div>
 
       <aside class="vista" aria-label="Vista previa de la etiqueta">
         <div class="vista__pliego">

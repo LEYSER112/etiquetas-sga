@@ -16,7 +16,6 @@ const datos = (h, p, pictogramas) => ({
   pictogramas,
   frasesH: textoAFrases(h.join('\n'), 'H'),
   frasesP: textoAFrases(p.join('\n'), 'P'),
-  telefonoEmergencia: 'CISPROQUIM 01 8000 916012',
   contenido: '20 L',
 });
 

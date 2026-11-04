@@ -12,6 +12,7 @@ const valor = (form, nombre) => (form.elements.namedItem(nombre)?.value ?? '').t
 export function leerFormulario(form, pictogramas) {
   const capacidad = Number.parseFloat(valor(form, 'capacidad').replace(',', '.'));
   return {
+    codigoInterno: valor(form, 'codigoInterno'),
     nombreProducto: valor(form, 'nombre'),
     palabraAdvertencia: valor(form, 'palabra'),
     capacidadL: Number.isFinite(capacidad) ? capacidad : null,
@@ -19,13 +20,11 @@ export function leerFormulario(form, pictogramas) {
     pictogramas,
     frasesH: textoAFrases(valor(form, 'frasesH'), 'H'),
     frasesP: textoAFrases(valor(form, 'frasesP'), 'P'),
-    telefonoEmergencia: valor(form, 'telefonoEmergencia'),
+    ean13Texto: valor(form, 'ean13'),
     fechaFabricacion: valor(form, 'fechaFabricacion'),
     fechaVencimiento: valor(form, 'fechaVencimiento'),
     tamano: valor(form, 'tamano') || 'auto',
     orientacion: valor(form, 'orientacion') || 'auto',
-    modo: valor(form, 'modo') || 'individual',
-    hoja: valor(form, 'hoja') || 'carta',
     copias: Number.parseInt(valor(form, 'copias'), 10) || 1,
     borde: form.elements.namedItem('borde')?.checked ?? true,
     cuadroLote: form.elements.namedItem('cuadroLote')?.checked ?? true,
@@ -36,9 +35,8 @@ export function leerFormulario(form, pictogramas) {
  * Llena el formulario con el resultado del análisis de la FDS.
  * @param {HTMLFormElement} form
  * @param {ReturnType<import('../core/analizador-fds.js').analizarFds>} r
- * @param {{telefonoEmergencia?: string}} respaldo  Valores por defecto de la empresa.
  */
-export function escribirAnalisis(form, r, respaldo = {}) {
+export function escribirAnalisis(form, r) {
   const poner = (nombre, texto) => {
     const campo = form.elements.namedItem(nombre);
     if (campo) campo.value = texto ?? '';
@@ -47,5 +45,7 @@ export function escribirAnalisis(form, r, respaldo = {}) {
   poner('palabra', r.palabraAdvertencia);
   poner('frasesH', frasesATexto(r.frasesH));
   poner('frasesP', frasesATexto(r.frasesP));
-  poner('telefonoEmergencia', r.telefonoEmergencia || respaldo.telefonoEmergencia);
+  // El código interno y el EAN son de cada producto: se limpian con cada FDS nueva.
+  poner('codigoInterno', '');
+  poner('ean13', '');
 }

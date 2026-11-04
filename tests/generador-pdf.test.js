@@ -21,7 +21,6 @@ const datosBase = {
     { codigo: 'H400', texto: 'Muy tóxico para los organismos acuáticos.' },
   ],
   frasesP: [{ codigo: 'P280', texto: 'Llevar guantes, prendas, gafas y máscara de protección.' }],
-  telefonoEmergencia: '01 8000 916012',
   capacidadL: 20,
   tamanoId: 'A7',
 };
@@ -55,18 +54,6 @@ test('tres pictogramas caben en una fila en 74 mm', async () => {
   const { diseno } = await generarPdf(datos, obtenerTamano('A7'), { obtenerPictograma });
   const ys = new Set(diseno.elementos.filter((e) => e.tipo === 'pictograma').map((e) => e.y));
   assert.equal(ys.size, 1);
-});
-
-test('modo hoja reparte copias en hojas carta', async () => {
-  const { bytes } = await generarPdf(datosBase, obtenerTamano('A7'), {
-    obtenerPictograma,
-    modo: 'hoja',
-    hoja: 'carta',
-    copias: 10,
-  });
-  const pdf = await PDFDocument.load(bytes);
-  // En carta caben 2 x 2 etiquetas de 74 x 105 mm
-  assert.equal(pdf.getPageCount(), 3);
 });
 
 test('avisa cuando el texto no cabe', async () => {
@@ -113,4 +100,39 @@ test('el cuadro del lote mide 32 x 15 mm y queda dentro de la etiqueta', async (
     assert.equal(cuadro.alto, 15);
     assert.ok(cuadro.x + cuadro.ancho <= t.anchoMm && cuadro.y + cuadro.alto <= t.altoMm);
   }
+});
+
+const textos = (diseno) => diseno.elementos.filter((e) => e.tipo === 'texto');
+const contenido = (el) => el.tramos.map((t) => t.texto).join('');
+
+test('código Odoo y nombre quedan en la misma fila, separados por la línea', async () => {
+  const datos = { ...datosBase, codigoInterno: 'MP-0158' };
+  for (const formato of [{ ...obtenerTamano('A7'), anchoMm: 105, altoMm: 74 }, obtenerTamano('A7')]) {
+    const { diseno } = await generarPdf(datos, formato, { obtenerPictograma });
+    const codigo = textos(diseno).find((t) => contenido(t) === 'MP-0158');
+    const nombre = textos(diseno).find((t) => contenido(t).startsWith('HIPOCLORITO'));
+    assert.ok(codigo && nombre);
+    assert.ok(codigo.x < nombre.x);
+    // Misma fila: la línea base del código cae dentro del alto del nombre
+    assert.ok(Math.abs(codigo.y - nombre.y) < nombre.pt * 0.3528);
+  }
+});
+
+test('los teléfonos de CISPROQUIM siempre se imprimen', async () => {
+  const { diseno } = await generarPdf(datosBase, obtenerTamano('A7'), { obtenerPictograma });
+  const todo = textos(diseno).map(contenido).join(' | ');
+  assert.match(todo, /CISPROQUIM/);
+  assert.match(todo, /018000-916012/);
+  assert.match(todo, /\(601\) 2886012/);
+});
+
+test('el EAN-13 solo aparece si hay un código válido', async () => {
+  const barras = async (ean13) => {
+    const { diseno } = await generarPdf({ ...datosBase, ean13 }, obtenerTamano('A6'), { obtenerPictograma });
+    return diseno.elementos.filter((e) => e.tipo === 'relleno').length;
+  };
+  const sinCodigo = await barras('');
+  const conCodigo = await barras('7701234567897');
+  assert.equal(sinCodigo, 1); // solo la barra negra del título de emergencias
+  assert.ok(conCodigo > 20);
 });

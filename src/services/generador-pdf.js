@@ -3,20 +3,20 @@
  * Funciona en el navegador y en Node (pruebas), porque los pictogramas se
  * reciben ya convertidos a PNG mediante `obtenerPictograma`.
  */
-import { PDFDocument, StandardFonts, rgb } from '../../vendor/pdf-lib/pdf-lib.esm.min.js';
+import { PDFDocument, StandardFonts, rgb, degrees } from '../../vendor/pdf-lib/pdf-lib.esm.min.js';
 import { PT_A_MM } from '../core/diseno-etiqueta.js';
 import { elegirFormato } from '../core/ajuste-tamano.js';
 import { aWinAnsi } from '../core/texto.js';
 import { HOJAS, IMPRESION } from '../config/empresa.js';
+import { acomodarEnHojas } from '../core/acomodo-hoja.js';
 
 const mmAPt = (mm) => mm / PT_A_MM;
 const NEGRO = rgb(0, 0, 0);
+const BLANCO = rgb(1, 1, 1);
 
 /**
  * @typedef {object} OpcionesPdf
- * @property {'individual'|'hoja'} [modo]   Una etiqueta por página o varias en una hoja.
- * @property {'carta'|'a4'|'oficio'} [hoja]
- * @property {number} [copias]
+ * @property {number} [copias]               Páginas iguales (una etiqueta por página).
  * @property {boolean} [borde]              Línea de contorno de la etiqueta.
  * @property {boolean} [cuadroLote]         Cuadro de 32 x 15 mm para el sticker del lote.
  * @property {(codigo:string, ladoMm:number) => Promise<Uint8Array>} obtenerPictograma
@@ -29,14 +29,7 @@ const NEGRO = rgb(0, 0, 0);
  * @param {OpcionesPdf} opciones
  */
 export async function generarPdf(datos, formatos, opciones) {
-  const {
-    modo = 'individual',
-    hoja = 'carta',
-    copias = 1,
-    borde = true,
-    cuadroLote = true,
-    obtenerPictograma,
-  } = opciones;
+  const { copias = 1, borde = true, cuadroLote = true, obtenerPictograma } = opciones;
 
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Etiqueta SGA - ${datos.nombreProducto || 'producto'}`);
@@ -68,40 +61,88 @@ export async function generarPdf(datos, formatos, opciones) {
   const avisos = [...diseno.avisos];
   const totalCopias = Math.max(1, Math.min(500, Math.floor(copias) || 1));
 
-  if (modo === 'hoja') {
-    const papel = HOJAS[hoja] ?? HOJAS.carta;
-    const { margenHojaMm: margen, separacionMm: sep } = IMPRESION;
-    const columnas = Math.floor((papel.anchoMm - 2 * margen + sep) / (formato.anchoMm + sep));
-    const filas = Math.floor((papel.altoMm - 2 * margen + sep) / (formato.altoMm + sep));
-    const porHoja = columnas * filas;
-    if (porHoja < 1) throw new Error(`La etiqueta no cabe en una hoja ${papel.nombre}.`);
-
-    const anchoGrilla = columnas * formato.anchoMm + (columnas - 1) * sep;
-    const altoGrilla = filas * formato.altoMm + (filas - 1) * sep;
-    const inicioX = (papel.anchoMm - anchoGrilla) / 2;
-    const inicioY = (papel.altoMm - altoGrilla) / 2;
-
-    for (let n = 0; n < totalCopias; n += 1) {
-      const indice = n % porHoja;
-      if (indice === 0) pdf.addPage([mmAPt(papel.anchoMm), mmAPt(papel.altoMm)]);
-      const pagina = pdf.getPage(pdf.getPageCount() - 1);
-      const x = inicioX + (indice % columnas) * (formato.anchoMm + sep);
-      const y = inicioY + Math.floor(indice / columnas) * (formato.altoMm + sep);
-      dibujar(pagina, x, y);
-      dibujarMarcasCorte(pagina, x, y, formato.anchoMm, formato.altoMm);
-    }
-    avisos.push({
-      nivel: 'info',
-      mensaje: `${porHoja} etiqueta(s) por hoja ${papel.nombre}. Imprima al 100 % (sin "ajustar a la página").`,
-    });
-  } else {
-    for (let n = 0; n < totalCopias; n += 1) {
-      const pagina = pdf.addPage([mmAPt(formato.anchoMm), mmAPt(formato.altoMm)]);
-      dibujar(pagina, 0, 0);
-    }
+  for (let n = 0; n < totalCopias; n += 1) {
+    const pagina = pdf.addPage([mmAPt(formato.anchoMm), mmAPt(formato.altoMm)]);
+    dibujar(pagina, 0, 0);
   }
 
   return { bytes: await pdf.save(), avisos, diseno, formato };
+}
+
+/**
+ * @typedef {object} EtiquetaGrupo
+ * @property {object} datos     Datos de la etiqueta (como los arma el formulario).
+ * @property {{anchoMm:number, altoMm:number, pictogramaMm:number}} formato  Tamaño ya elegido.
+ * @property {boolean} [borde]
+ * @property {boolean} [cuadroLote]
+ * @property {number} [copias]
+ */
+
+/**
+ * PDF con varias etiquetas acomodadas en hojas de impresión.
+ * Cada etiqueta se genera a su medida y se coloca en la hoja (girada 90° si
+ * así caben más), con separación y marcas de corte.
+ * @param {EtiquetaGrupo[]} etiquetas
+ * @param {{hoja?: string, obtenerPictograma: OpcionesPdf['obtenerPictograma']}} opciones
+ * @returns {Promise<{bytes: Uint8Array, hojas: number, etiquetas: number, papel: object}>}
+ */
+export async function generarHojasPdf(etiquetas, { hoja = 'carta', obtenerPictograma }) {
+  if (!etiquetas.length) throw new Error('No hay etiquetas en el grupo.');
+  const papel = HOJAS[hoja] ?? HOJAS.carta;
+
+  const pdf = await PDFDocument.create();
+  pdf.setTitle(`Etiquetas SGA - ${etiquetas.length} producto(s)`);
+  pdf.setSubject('Etiquetas SGA - Resolución 773 de 2021');
+  pdf.setCreator('Generador de etiquetas SGA');
+  pdf.setProducer('pdf-lib');
+
+  // Una pieza por copia; todas las copias comparten la misma página incrustada.
+  const piezas = [];
+  for (const etiqueta of etiquetas) {
+    const { bytes, formato } = await generarPdf(etiqueta.datos, etiqueta.formato, {
+      borde: etiqueta.borde ?? true,
+      cuadroLote: etiqueta.cuadroLote ?? true,
+      obtenerPictograma,
+    });
+    const [pagina] = await pdf.embedPdf(bytes, [0]);
+    const copias = Math.max(1, Math.min(500, Math.floor(etiqueta.copias) || 1));
+    for (let c = 0; c < copias; c += 1) {
+      piezas.push({ anchoMm: formato.anchoMm, altoMm: formato.altoMm, pagina });
+    }
+  }
+
+  const hojas = acomodarEnHojas(piezas, papel, {
+    margen: IMPRESION.margenHojaMm,
+    separacion: IMPRESION.separacionMm,
+  });
+
+  for (const ubicaciones of hojas) {
+    const pagina = pdf.addPage([mmAPt(papel.anchoMm), mmAPt(papel.altoMm)]);
+    const altoPagina = pagina.getHeight();
+    for (const u of ubicaciones) {
+      const abajo = altoPagina - mmAPt(u.y + u.alto);
+      if (u.girada) {
+        // Girada 90° antihoraria alrededor de (x, y): se dibuja desde la esquina inferior derecha.
+        pagina.drawPage(u.pieza.pagina, {
+          x: mmAPt(u.x + u.ancho),
+          y: abajo,
+          width: mmAPt(u.pieza.anchoMm),
+          height: mmAPt(u.pieza.altoMm),
+          rotate: degrees(90),
+        });
+      } else {
+        pagina.drawPage(u.pieza.pagina, {
+          x: mmAPt(u.x),
+          y: abajo,
+          width: mmAPt(u.ancho),
+          height: mmAPt(u.alto),
+        });
+      }
+      dibujarMarcasCorte(pagina, u.x, u.y, u.ancho, u.alto);
+    }
+  }
+
+  return { bytes: await pdf.save(), hojas: hojas.length, etiquetas: piezas.length, papel, acomodo: hojas };
 }
 
 /** Dibuja los elementos del diseño con origen (mm) en la esquina superior izquierda. */
@@ -121,6 +162,15 @@ function dibujarElementos(pagina, elementos, origenX, origenY, fuentes, imagenes
           borderColor: NEGRO,
           borderWidth: mmAPt(el.grosor),
           borderDashArray: el.guion ? [mmAPt(1.2), mmAPt(0.8)] : undefined,
+        });
+        break;
+      case 'relleno':
+        pagina.drawRectangle({
+          x: X(el.x),
+          y: Y(el.y + el.alto),
+          width: mmAPt(el.ancho),
+          height: mmAPt(el.alto),
+          color: NEGRO,
         });
         break;
       case 'linea':
@@ -150,7 +200,7 @@ function dibujarElementos(pagina, elementos, origenX, origenY, fuentes, imagenes
             y: Y(el.y),
             size: el.pt,
             font: tramo.negrita ? fuentes.negrita : fuentes.normal,
-            color: NEGRO,
+            color: el.color === 'blanco' ? BLANCO : NEGRO,
           });
         }
         break;
@@ -163,8 +213,7 @@ function dibujarElementos(pagina, elementos, origenX, origenY, fuentes, imagenes
 /** Marcas de corte en las esquinas, por fuera de la etiqueta. */
 function dibujarMarcasCorte(pagina, x, y, ancho, alto) {
   const altoPagina = pagina.getHeight();
-  const largo = 2.5;
-  const separacion = 0.8;
+  const { largoMm: largo, distanciaMm: separacion } = IMPRESION.marcaCorte;
   const gris = rgb(0.45, 0.45, 0.45);
   const linea = (x1, y1, x2, y2) =>
     pagina.drawLine({
