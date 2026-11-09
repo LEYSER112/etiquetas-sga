@@ -9,13 +9,14 @@
  *   1. Encabezado: código interno (Odoo) y nombre del producto en la misma fila
  *   2. Pictogramas y palabra de advertencia
  *   3. Indicaciones de peligro (H) y consejos de prudencia (P)
- *   4. Pie: recuadro de emergencias CISPROQUIM (con el EAN-13 debajo, si hay),
+ *   4. Pie: recuadro de emergencias CISPROQUIM (con el EAN-13 o el QR debajo, si hay),
  *      contenido y fechas, y cuadro para el sticker del lote
  */
 import { formatearFecha } from './texto.js';
 import { PT_A_MM } from './medidas.js';
 import { CISPROQUIM } from '../config/empresa.js';
 import { EAN13, anchoEan13, maquetarEan13 } from './ean13.js';
+import { QR, matrizQr, ladoMinimoQr, maquetarQr } from './qr.js';
 
 export { PT_A_MM };
 const INTERLINEADO = 1.18;
@@ -271,6 +272,11 @@ function altoBarrasEan(e) {
   return Math.min(22, Math.max(8, 10 * e.escala));
 }
 
+/** Lado del QR (con su margen en blanco) según el tamaño de la etiqueta (mm). */
+function ladoBaseQr(e) {
+  return Math.min(52, Math.max(20, 22 * e.escala));
+}
+
 /** Ancho mínimo que necesita el recuadro de emergencias (mm). */
 function anchoMinimoEmergencia(datos, e, medidor) {
   const l = letrasEmergencia(e);
@@ -280,13 +286,14 @@ function anchoMinimoEmergencia(datos, e, medidor) {
     ...CISPROQUIM.lineas.map((f) => medidor.ancho(f.numero, l.numero * 0.8, true)),
   ];
   const barras = datos.ean13 ? anchoEan13(EAN13.magnificacionMin) : 0;
-  return Math.max(...textos, barras) + 2 * RELLENO_CAJA;
+  const qr = datos.qr ? ladoMinimoQr(matrizQr(datos.qr).length) : 0;
+  return Math.max(...textos, barras, qr) + 2 * RELLENO_CAJA;
 }
 
 /**
  * Recuadro de emergencias: barra negra con el título, los teléfonos de
  * CISPROQUIM (etiqueta a la izquierda, número grande a la derecha; o uno debajo
- * del otro si no caben) y, si hay, el código de barras EAN-13 debajo.
+ * del otro si no caben) y, si hay, el código de barras EAN-13 o el QR debajo.
  * @returns {{elementos: object[], alto: number, avisos: object[]}}
  */
 function maquetarEmergencia(datos, x, y, ancho, altoMinimo, e, medidor) {
@@ -347,6 +354,20 @@ function maquetarEmergencia(datos, x, y, ancho, altoMinimo, e, medidor) {
     );
     elementos.push(...ean.elementos);
     yActual += ean.alto;
+  } else if (datos.qr) {
+    // QR: cuadrado y centrado. Su margen en blanco (4 módulos) ya separa
+    // el código de los teléfonos y del borde del recuadro.
+    const modulos = matrizQr(datos.qr).length;
+    const lado = Math.min(interior, Math.max(ladoBaseQr(e), ladoMinimoQr(modulos)));
+    const qr = maquetarQr(datos.qr, x + (ancho - lado) / 2, yActual - 0.4, lado);
+    if (qr.moduloMm < QR.moduloMinMm - 1e-6) {
+      avisos.push({
+        nivel: 'advertencia',
+        mensaje: `El QR quedó con módulos de ${qr.moduloMm.toFixed(2)} mm (se recomienda mínimo ${QR.moduloMinMm} mm). Acorte el texto o use una etiqueta más grande.`,
+      });
+    }
+    elementos.push(...qr.elementos);
+    yActual += lado - 0.4 - RELLENO_CAJA * 0.6;
   }
 
   const alto = Math.max(altoMinimo, yActual + RELLENO_CAJA * 0.6 - y);
@@ -382,7 +403,7 @@ function maquetarCuadroLote(x, y) {
  * Pie de la etiqueta, apoyado en `yInferior`.
  * - Normal: recuadro de emergencias a la izquierda y cuadro del lote a la
  *   derecha; el contenido y las fechas van sobre el cuadro del lote si hay
- *   espacio (cuando el EAN-13 hace más alto el recuadro), o encima de todo.
+ *   espacio (cuando el EAN-13 o el QR hacen más alto el recuadro), o encima de todo.
  * - Etiquetas angostas: todo apilado.
  * @returns {{elementos: object[], alto: number, avisos: object[]}}
  */
@@ -609,7 +630,7 @@ const lineaH = (x1, x2, y) => ({ tipo: 'linea', x1, y1: y, x2, y2: y, grosor: 0.
  *   código Odoo  │ NOMBRE DE LA MATERIA PRIMA
  *   ─────────────┼────────────────────────────
  *   pictogramas  │ frases H y P
- *   PELIGRO      │ [emergencias + EAN-13] [lote]
+ *   PELIGRO      │ [emergencias + EAN-13 o QR] [lote]
  *
  * La línea vertical separa la columna de pictogramas del resto; el código va
  * encima de los pictogramas y el nombre después de la línea, en la misma fila.

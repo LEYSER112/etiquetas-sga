@@ -118,19 +118,42 @@
               >
             </div>
 
-            <div class="campo">
-              <label for="ean13">Código de barras EAN-13</label>
-              <input
-                id="ean13"
-                name="ean13"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                maxlength="17"
-                placeholder="770123456789"
-              />
-              <small id="ayuda-ean" class="ayuda" aria-live="polite"></small>
-            </div>
+            <fieldset class="campo">
+              <legend>Código en la etiqueta</legend>
+              <div class="segmentado">
+                <label>
+                  <input type="radio" name="codigoTipo" value="ean13" checked />
+                  <span>Código de barras (EAN-13)</span>
+                </label>
+                <label>
+                  <input type="radio" name="codigoTipo" value="qr" />
+                  <span>Código QR</span>
+                </label>
+              </div>
+              <div id="campo-ean" class="campo campo--interno">
+                <label for="ean13" class="visualmente-oculto">Números del EAN-13</label>
+                <input
+                  id="ean13"
+                  name="ean13"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  maxlength="17"
+                  placeholder="770123456789"
+                />
+              </div>
+              <div id="campo-qr" class="campo campo--interno" hidden>
+                <label for="qr-texto" class="visualmente-oculto">Texto del código QR</label>
+                <textarea
+                  id="qr-texto"
+                  name="qrTexto"
+                  rows="2"
+                  maxlength="300"
+                  placeholder="Texto, enlace o código que se leerá al escanear"
+                ></textarea>
+              </div>
+              <small id="ayuda-codigo" class="ayuda" aria-live="polite"></small>
+            </fieldset>
 
             <details class="desplegable">
               <summary>Fechas de fabricación y vencimiento (opcional)</summary>

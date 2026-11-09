@@ -20,7 +20,9 @@ export function leerFormulario(form, pictogramas) {
     pictogramas,
     frasesH: textoAFrases(valor(form, 'frasesH'), 'H'),
     frasesP: textoAFrases(valor(form, 'frasesP'), 'P'),
+    codigoTipo: valor(form, 'codigoTipo') === 'qr' ? 'qr' : 'ean13',
     ean13Texto: valor(form, 'ean13'),
+    qrTexto: valor(form, 'qrTexto'),
     fechaFabricacion: valor(form, 'fechaFabricacion'),
     fechaVencimiento: valor(form, 'fechaVencimiento'),
     tamano: valor(form, 'tamano') || 'auto',
@@ -45,7 +47,9 @@ export function escribirAnalisis(form, r) {
   poner('palabra', r.palabraAdvertencia);
   poner('frasesH', frasesATexto(r.frasesH));
   poner('frasesP', frasesATexto(r.frasesP));
-  // El código interno y el EAN son de cada producto: se limpian con cada FDS nueva.
+  // El código interno, el EAN y el texto del QR son de cada producto: se limpian
+  // con cada FDS nueva (el tipo de código elegido se conserva).
   poner('codigoInterno', '');
   poner('ean13', '');
+  poner('qrTexto', '');
 }

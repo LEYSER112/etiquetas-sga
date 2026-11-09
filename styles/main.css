@@ -325,6 +325,52 @@ textarea:focus {
   cursor: pointer;
 }
 
+/* --- Selector de tipo de código ---------------------------------------- */
+.segmentado {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.segmentado label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+.segmentado label + label {
+  border-left: 1px solid var(--linea);
+}
+.segmentado input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmentado label:has(input:checked) {
+  background: var(--tinta);
+  color: var(--papel);
+}
+.segmentado label:has(input:focus-visible) {
+  outline: 2px solid var(--foco);
+  outline-offset: -2px;
+}
+.campo--interno {
+  margin: 0.5rem 0 0;
+}
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* --- Desplegable ------------------------------------------------------- */
 .desplegable {
   border-top: 1px solid var(--linea);

@@ -6,6 +6,7 @@ import { pictogramasDesdeH, palabraDesdeH } from './reglas-sga.js';
 import { pictogramaPorCodigo } from '../data/pictogramas.js';
 import { tamanoPorCapacidad, indiceTamano } from '../config/tamanos-etiqueta.js';
 import { validarEan13 } from './ean13.js';
+import { validarQr } from './qr.js';
 
 const nombrePicto = (codigo) => `${codigo} (${pictogramaPorCodigo(codigo)?.nombre ?? '?'})`;
 
@@ -67,7 +68,12 @@ export function validarEtiqueta(datos) {
     avisos.push({ nivel: 'advertencia', mensaje: 'No hay consejos de prudencia (frases P).' });
   }
 
-  if (datos.ean13Texto) {
+  if (datos.codigoTipo === 'qr') {
+    const qr = validarQr(datos.qrTexto);
+    if (!qr.vacio && !qr.valido) {
+      avisos.push({ nivel: 'error', mensaje: `Código QR no impreso: ${qr.mensaje}` });
+    }
+  } else if (datos.ean13Texto) {
     const ean = validarEan13(datos.ean13Texto);
     if (!ean.valido) {
       avisos.push({ nivel: 'error', mensaje: `Código de barras no impreso: ${ean.mensaje}` });

@@ -9,6 +9,7 @@ import { TAMANOS_ETIQUETA } from './config/tamanos-etiqueta.js';
 import { formatosCandidatos } from './core/ajuste-tamano.js';
 import { IMPRESION } from './config/empresa.js';
 import { validarEan13 } from './core/ean13.js';
+import { validarQr } from './core/qr.js';
 import { pictogramaPorCodigo } from './data/pictogramas.js';
 import { generarPdf, generarHojasPdf } from './services/generador-pdf.js';
 import { svgAPng } from './services/rasterizador-svg.js';
@@ -64,7 +65,14 @@ llenarSelectorTamanos();
 reiniciar();
 configurarZonaCarga($('zona-carga'), $('archivo-fds'), cargarFds);
 form.addEventListener('input', programarActualizacion);
-form.addEventListener('change', programarActualizacion);
+form.addEventListener('change', (evento) => {
+  // El campo del código cambia al instante; la vista previa se actualiza después.
+  if (evento.target.name === 'codigoTipo') {
+    mostrarCampoCodigo(evento.target.value === 'qr');
+    (evento.target.value === 'qr' ? $('qr-texto') : $('ean13')).focus();
+  }
+  programarActualizacion();
+});
 botonSugeridos.addEventListener('click', () => {
   selector.establecer(pictogramasSugeridos());
   programarActualizacion();
@@ -113,7 +121,9 @@ function llenarSelectorTamanos() {
 }
 
 function reiniciar() {
+  const tipoCodigo = form.elements.namedItem('codigoTipo').value;
   form.reset();
+  form.elements.namedItem('codigoTipo').value = tipoCodigo;
   selector.establecer([]);
   avisosAnalisis = [];
   ultimoPdf = null;
@@ -174,9 +184,7 @@ async function actualizar() {
   const id = ++generacion;
   mostrandoHojas = false;
   const datos = leerFormulario(form, selector.obtener());
-  const ean = validarEan13(datos.ean13Texto);
-  datos.ean13 = ean.valido ? ean.codigo : '';
-  mostrarAyudaEan(ean);
+  prepararCodigo(datos);
 
   const sugeridos = pictogramasSugeridos();
   botonSugeridos.hidden = sugeridos.join() === datos.pictogramas.join();
@@ -229,10 +237,37 @@ async function actualizar() {
   }
 }
 
-function mostrarAyudaEan(ean) {
-  const ayuda = $('ayuda-ean');
-  ayuda.textContent = ean.vacio ? 'Opcional. Escribe 12 dígitos y el último se calcula solo.' : ean.mensaje;
-  ayuda.dataset.tipo = ean.vacio ? '' : ean.valido ? 'ok' : 'error';
+/** Muestra el campo del EAN-13 o el del QR. */
+function mostrarCampoCodigo(esQr) {
+  $('campo-ean').hidden = esQr;
+  $('campo-qr').hidden = !esQr;
+}
+
+/**
+ * Según el tipo elegido, deja en `datos` el EAN-13 o el texto del QR listos
+ * para imprimir (o vacíos), muestra el campo que corresponde y su ayuda.
+ */
+function prepararCodigo(datos) {
+  const esQr = datos.codigoTipo === 'qr';
+  mostrarCampoCodigo(esQr);
+  const ayuda = $('ayuda-codigo');
+
+  let resultado;
+  if (esQr) {
+    resultado = validarQr(datos.qrTexto);
+    datos.qr = resultado.valido ? resultado.texto : '';
+    datos.ean13 = '';
+  } else {
+    resultado = validarEan13(datos.ean13Texto);
+    datos.ean13 = resultado.valido ? resultado.codigo : '';
+    datos.qr = '';
+  }
+
+  const vacio = esQr
+    ? 'Opcional. Escribe el texto que debe leer el celular o el lector (máximo 300 caracteres).'
+    : 'Opcional. Escribe 12 dígitos y el último se calcula solo.';
+  ayuda.textContent = resultado.vacio ? vacio : resultado.mensaje;
+  ayuda.dataset.tipo = resultado.vacio ? '' : resultado.valido ? 'ok' : 'error';
 }
 
 function mostrarTamanoElegido(formato, datos) {
